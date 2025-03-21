@@ -47,7 +47,7 @@ const CreateGroupScreen = () => {
           text: 'Invite Members',
           onPress: () => {
             // In a real app, you would navigate to an invite screen
-            navigation.navigate('Home');
+            navigation.navigate('InviteMembers');
           },
         },
         {

@@ -25,6 +25,7 @@ const AuthScreen = () => {
 
 
   const handleAuth = () => {
+
     if (!phoneNumber || phoneNumber.length < 10) {
       Alert.alert('Invalid Phone Number', 'Please enter a valid phone number');
       return;
@@ -77,32 +78,73 @@ const AuthScreen = () => {
     Alert.alert('Reset PIN', 'A verification code will be sent to your phone to reset your PIN');
     // In a real app, you would send a reset code
   };
+const [fullName, setFullName] = useState(''); // Add state for full name
 
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View style={styles.formContainer}>
-        <Text style={styles.title}>{isLogin ? 'Welcome Back' : 'Create Account'}</Text>
+return (
+  <KeyboardAvoidingView
+    style={styles.container}
+    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+  >
+    <View style={styles.formContainer}>
+      <Text style={styles.title}>{isLogin ? 'Welcome Back' : 'Create Account'}</Text>
 
+      {!isLogin && ( // Show full name input only for sign-up
         <View style={styles.inputContainer}>
-          <Ionicons name="call-outline" size={20} color="#009E60" style={styles.inputIcon} />
+          <Ionicons name="person-outline" size={20} color="#009E60" style={styles.inputIcon} />
           <TextInput
             style={styles.input}
-            placeholder="Phone Number"
-            keyboardType="phone-pad"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
+            placeholder="Full Name"
+            value={fullName}
+            onChangeText={setFullName}
           />
         </View>
+      )}
 
-        {isLogin && (
+      <View style={styles.inputContainer}>
+        <Ionicons name="call-outline" size={20} color="#009E60" style={styles.inputIcon} />
+        <TextInput
+          style={styles.input}
+          placeholder="Phone Number"
+          keyboardType="phone-pad"
+          value={phoneNumber}
+          onChangeText={setPhoneNumber}
+        />
+      </View>
+
+      {isLogin && (
+        <View style={styles.inputContainer}>
+          <Ionicons name="lock-closed-outline" size={20} color="#009E60" style={styles.inputIcon} />
+          <TextInput
+            style={styles.input}
+            placeholder="PIN"
+            keyboardType="number-pad"
+            secureTextEntry
+            value={pin}
+            onChangeText={setPin}
+            maxLength={6}
+          />
+        </View>
+      )}
+
+      {!isLogin && otpSent && (
+        <>
+          <View style={styles.inputContainer}>
+            <Ionicons name="key-outline" size={20} color="#009E60" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Verification Code"
+              keyboardType="number-pad"
+              value={otp}
+              onChangeText={setOtp}
+              maxLength={6}
+            />
+          </View>
+
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed-outline" size={20} color="#009E60" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="PIN"
+              placeholder="Create PIN"
               keyboardType="number-pad"
               secureTextEntry
               value={pin}
@@ -110,75 +152,46 @@ const AuthScreen = () => {
               maxLength={6}
             />
           </View>
-        )}
 
-        {!isLogin && otpSent && (
-          <>
-            <View style={styles.inputContainer}>
-              <Ionicons name="key-outline" size={20} color="#009E60" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Verification Code"
-                keyboardType="number-pad"
-                value={otp}
-                onChangeText={setOtp}
-                maxLength={6}
-              />
-            </View>
+          <View style={styles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={20} color="#009E60" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Confirm PIN"
+              keyboardType="number-pad"
+              secureTextEntry
+              value={confirmPin}
+              onChangeText={setConfirmPin}
+              maxLength={6}
+            />
+          </View>
+        </>
+      )}
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color="#009E60" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Create PIN"
-                keyboardType="number-pad"
-                secureTextEntry
-                value={pin}
-                onChangeText={setPin}
-                maxLength={6}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color="#009E60" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Confirm PIN"
-                keyboardType="number-pad"
-                secureTextEntry
-                value={confirmPin}
-                onChangeText={setConfirmPin}
-                maxLength={6}
-              />
-            </View>
-          </>
-        )}
-
-        {isLogin && (
-          <TouchableOpacity style={styles.forgotPin} onPress={handleForgotPin}>
-            <Text style={styles.forgotPinText}>Forgot PIN?</Text>
-          </TouchableOpacity>
-        )}
-
-        <TouchableOpacity style={styles.button} onPress={handleAuth}>
-          <Text style={styles.buttonText}>
-            {isLogin
-              ? 'Login'
-              : otpSent
-                ? 'Create Account'
-                : 'Send Verification Code'}
-          </Text>
+      {isLogin && (
+        <TouchableOpacity style={styles.forgotPin} onPress={handleForgotPin}>
+          <Text style={styles.forgotPinText}>Forgot PIN?</Text>
         </TouchableOpacity>
+      )}
 
-        <TouchableOpacity style={styles.toggleAuth} onPress={toggleAuthMode}>
-          <Text style={styles.toggleAuthText}>
-            {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Login'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
-  );
-};
+      <TouchableOpacity style={styles.button} onPress={handleAuth}>
+        <Text style={styles.buttonText}>
+          {isLogin
+            ? 'Login'
+            : otpSent
+              ? 'Create Account'
+              : 'Send Verification Code'}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.toggleAuth} onPress={toggleAuthMode}>
+        <Text style={styles.toggleAuthText}>
+          {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Login'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  </KeyboardAvoidingView>
+)}
 
 const styles = StyleSheet.create({
   container: {

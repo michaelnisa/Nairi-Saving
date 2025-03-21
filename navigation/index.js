@@ -19,6 +19,14 @@ import JoinGroupScreen from "../screens/JoinGroupScreen";
 import ContributeScreen from "../screens/ContributeScreen";
 import LoanRequestScreen from "../screens/LoanRequestScreen";
 import ProfileScreen from "../screens/ProfileScreen";
+import InviteMembersScreen from "../screens/InviteMembersScreen";
+import ManageMembersScreen from "../screens/ManageMembersScreen";
+import EditGroupScreen from "../screens/EditGroupScreen";
+import MakeContributionScreen from "../screens/MakeContributionScreen";
+import RequestLoanScreen from "../screens/RequestLoanScreen";
+import DisburseFundsScreen from "../screens/DisburseFundsScreen";
+
+
 
 export default function Navigation({ colorScheme }) {
   return (
@@ -52,6 +60,17 @@ function RootNavigator() {
       <Stack.Screen name="Contribute" component={ContributeScreen} />
       <Stack.Screen name="LoanRequest" component={LoanRequestScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="InviteMembers" component={InviteMembersScreen} />
+      <Stack.Screen name="ManageMembers" component={ManageMembersScreen} />
+      <Stack.Screen name="EditGroup" component={EditGroupScreen} /> 
+      <Stack.Screen name="MakeContribution" component={MakeContributionScreen} />
+      <Stack.Screen name="RequestLoan" component={RequestLoanScreen} />
+      <Stack.Screen name="DisburseFunds" component={DisburseFundsScreen} />
+
+
+      
+    
+
     </Stack.Navigator>
   );
 }

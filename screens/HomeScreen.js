@@ -49,7 +49,7 @@ const HomeScreen = () => {
   const renderGroupCard = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate('GroupOverview', { groupId: item.id })}
+      onPress={() => navigation.navigate('GroupOverview', )}
     >
       <View style={styles.cardHeader}>
         <Text style={styles.groupName}>{item.name}</Text>

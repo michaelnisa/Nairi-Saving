@@ -7,9 +7,7 @@ import {
   ScrollView,
   FlatList,
 } from 'react-native';
-import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
-
-// Removed local declaration of RootStackParamList to avoid conflict with the imported one
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 // Mock data for group details
@@ -20,6 +18,8 @@ const groupDetails = {
   goal: 2000000,
   contributionAmount: 50000,
   frequency: 'Weekly',
+  loan_allowance_enabled: true,
+  loan_interest_rate: 5,
   nextRotation: {
     member: 'John Doe',
     date: '15 Apr 2023',
@@ -71,7 +71,6 @@ const groupDetails = {
 };
 
 const GroupOverviewScreen = () => {
-  const route = useRoute();
   const [activeTab, setActiveTab] = useState('members');
   const navigation = useNavigation();
 
@@ -81,7 +80,6 @@ const GroupOverviewScreen = () => {
 
   const renderTrustScore = (score) => {
     const stars = [];
-    const clampedScore = Math.max(0, Math.min(score, 5));
     for (let i = 0; i < 5; i++) {
       stars.push(
         <Ionicons
@@ -142,7 +140,7 @@ const GroupOverviewScreen = () => {
 
       <TouchableOpacity
         style={styles.contributeButton}
-        onPress={() => navigation.navigate('Contribute', { groupData: groupDetails })}
+        onPress={() => navigation.navigate('MakeContribution', { groupId: "1" })}
       >
         <Text style={styles.contributeButtonText}>Contribute Now</Text>
       </TouchableOpacity>
@@ -210,6 +208,14 @@ const GroupOverviewScreen = () => {
           <Text style={styles.announcementMessage}>{item.message}</Text>
         </View>
       )}
+      ListFooterComponent={
+        <TouchableOpacity
+          style={styles.createAnnouncementButton}
+          onPress={() => navigation.navigate('CreateAnnouncement', )}
+        >
+          <Text style={styles.createAnnouncementButtonText}>Create Announcement</Text>
+        </TouchableOpacity>
+      }
     />
   );
 
@@ -223,7 +229,10 @@ const GroupOverviewScreen = () => {
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{groupDetails.name}</Text>
-        <TouchableOpacity style={styles.moreButton}>
+        <TouchableOpacity 
+          style={styles.moreButton}
+          onPress={() => navigation.navigate('GroupActivities', { groupId: groupDetails.id })}
+        >
           <Ionicons name="ellipsis-vertical" size={24} color="#333" />
         </TouchableOpacity>
       </View>
@@ -317,7 +326,7 @@ const GroupOverviewScreen = () => {
       <View style={styles.actionButtons}>
         <TouchableOpacity
           style={[styles.actionButton, styles.loanButton]}
-          onPress={() => navigation.navigate('LoanRequest', { groupId: groupDetails.id })}
+          onPress={() => navigation.navigate('RequestLoan', )}
         >
           <Ionicons name="cash-outline" size={20} color="white" />
           <Text style={styles.actionButtonText}>Request Loan</Text>
@@ -325,11 +334,13 @@ const GroupOverviewScreen = () => {
         <TouchableOpacity
           style={[styles.actionButton, styles.disburseButton]}
           onPress={() => {
-            // Handle disburse funds
+            // Handle disburse funds - would navigate to a screen in a real app
+            alert('Disburse funds feature would open here');
           }}
         >
           <Ionicons name="wallet-outline" size={20} color="white" />
-          <Text style={styles.actionButtonText}>Disburse Funds</Text>
+          <Text style={styles.actionButtonText}
+          onPress={ () => navigation.navigate('DisburseFunds')}>Disburse Funds</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -600,6 +611,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     lineHeight: 20,
+  },
+  createAnnouncementButton: {
+    backgroundColor: '#009E60',
+    paddingVertical: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  createAnnouncementButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   actionButtons: {
     flexDirection: 'row',
