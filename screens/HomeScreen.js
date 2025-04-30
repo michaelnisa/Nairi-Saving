@@ -12,10 +12,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import api from '../screens/services/api';
 import { useAuth } from '../screens/context/AuthContext';
-import { useNavigation } from '../context/NavigationContext';
+import { useNavigation } from '@react-navigation/native';
 
 const HomeScreen = () => {
-  const { navigate } = useNavigation();
+  const navigation = useNavigation();
   const { user } = useAuth();
   const [groups, setGroups] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,7 +50,7 @@ const HomeScreen = () => {
   const renderGroupCard = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigate('GroupOverview', { groupId: item.id })}
+      onPress={() => navigation.navigate('GroupOverview', { groupId: item.id })}
     >
       <View style={styles.cardHeader}>
         <Text style={styles.groupName}>{item.name}</Text>
@@ -102,7 +102,7 @@ const HomeScreen = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.iconButton}
-            onPress={() => navigate('Profile')}
+            onPress={() => navigation.navigate('Profile')}
           >
             <Ionicons name="person-circle-outline" size={28} color="#333" />
           </TouchableOpacity>
@@ -111,7 +111,7 @@ const HomeScreen = () => {
 
       <View style={styles.content}>
         <Text style={styles.sectionTitle}>Your Groups</Text>
-        
+
         {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#009E60" />
@@ -144,21 +144,21 @@ const HomeScreen = () => {
       <View style={styles.actionButtons}>
         <TouchableOpacity
           style={[styles.actionButton, styles.joinButton]}
-          onPress={() => navigate('JoinGroup')}
+          onPress={() => navigation.navigate('JoinGroup')}
         >
           <Ionicons name="log-in-outline" size={20} color="white" />
           <Text style={styles.actionButtonText}>Join Group</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionButton, styles.createButton]}
-          onPress={() => navigate('CreateGroup')}
+          onPress={() => navigation.navigate('CreateGroup')}
         >
           <Ionicons name="add-outline" size={20} color="white" />
           <Text style={styles.actionButtonText}>Create Group</Text>
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity onPress={() => navigate('Auth')}>
+      <TouchableOpacity onPress={() => navigation.navigate('Auth')}>
       </TouchableOpacity>
     </View>
   );

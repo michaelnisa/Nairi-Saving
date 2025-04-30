@@ -24,14 +24,17 @@ import ManageMembersScreen from "./screens/ManageMembersScreen";
 import EditGroupScreen from "./screens/EditGroupScreen";
 import MakeContributionScreen from "./screens/MakeContributionScreen";
 import RequestLoanScreen from "./screens/RequestLoanScreen";
+import { AuthProvider } from "./screens/context/AuthContext";
 
 export function AppNavigation({ colorScheme }) {
   return (
     <NavigationContainer
       theme={colorScheme === "dark" ? DarkTheme : DefaultTheme}
     >
-      <StatusBar style="auto" />
-      <RootNavigator />
+      <AuthProvider>
+        <StatusBar style="auto" />
+        <RootNavigator />
+      </AuthProvider>
     </NavigationContainer>
   );
 }
@@ -58,7 +61,7 @@ function RootNavigator() {
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="InviteMembers" component={InviteMembersScreen} />
       <Stack.Screen name="ManageMembers" component={ManageMembersScreen} />
-      <Stack.Screen name="EditGroup" component={EditGroupScreen} /> 
+      <Stack.Screen name="EditGroup" component={EditGroupScreen} />
       <Stack.Screen name="MakeContribution" component={MakeContributionScreen} />
       <Stack.Screen name="RequestLoan" component={RequestLoanScreen} />
     </Stack.Navigator>

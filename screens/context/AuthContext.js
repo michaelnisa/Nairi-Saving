@@ -1,8 +1,8 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import api, { setAuthToken } from '../../api'; // Ensure the correct relative path to your API module
 import { Animated } from 'react-native';
-import { useNavigation } from '../../context/NavigationContext'; // Import useNavigation
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import api, { setAuthToken } from '../../api'; // Ensure the correct relative path to your API module
 
 const AuthContext = createContext();
 
@@ -18,7 +18,7 @@ const startAnimation = (animatedValue) => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { navigate } = useNavigation(); // Use navigate from NavigationContext
+  const navigation = useNavigation(); // Use navigate from NavigationContext
 
   // Check for stored token on app start
   useEffect(() => {
@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }) => {
       await AsyncStorage.setItem('authToken', response.token); // Save token securely
       setAuthToken(response.token); // Set token for API requests
       setUser(response.user); // Update authentication state
-      navigate('Home'); // Redirect to Home screen
+      navigation.navigate("Home")
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
