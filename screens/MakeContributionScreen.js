@@ -3,97 +3,114 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
-  Alert,
   Image,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { api } from '../screens/services/api';
 
-// Mock data for the group
-const mockGroup = {
-  id: '1',
-  name: 'Family Savings',
-  contribution_amount: 50000,
-  balance: 1250000,
-  goal: 2000000,
-  frequency: 'Weekly',
-};
-
-const MakeContributionScreen = () => {
+const ContributeScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  
-  // Get groupId from route params or use default '1'
-  const groupId = route.params?.groupId || '1';
-  
-  const [isLoading, setIsLoading] = useState(true);
+  const { groupId } = route.params;
+  const [groupData, setGroupData] = useState(null);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [selectedMethod, setSelectedMethod] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [group, setGroup] = useState(null);
-  const [amount, setAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('mobile_money');
-  const [mobileNumber, setMobileNumber] = useState('');
-  const [note, setNote] = useState('');
-  
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
-    // Simulate API fetch with a delay
-    const timer = setTimeout(() => {
-      // Use the groupId to "fetch" the right group (in a real app)
-      // For now, we'll just use our mock data
-      setGroup(mockGroup);
-      setAmount(mockGroup.contribution_amount.toString());
-      setIsLoading(false);
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [groupId]); // Add groupId as dependency
-  
-  const handleMakeContribution = async () => {
-    // Validate inputs
-    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount');
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch group details
+        const groupDetails = await api.groups.getGroup(groupId);
+        setGroupData(groupDetails);
+        
+        // Fetch payment methods
+        const methods = await api.contributions.getPaymentMethods();
+        setPaymentMethods(methods);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+        Alert.alert('Error', 'Failed to load data. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [groupId]);
+
+  const formatCurrency = (amount) => {
+    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' TZS';
+  };
+
+  const handlePayment = async () => {
+    if (!selectedMethod) {
+      Alert.alert('Error', 'Please select a payment method');
       return;
     }
-    
-    if (paymentMethod === 'mobile_money' && !mobileNumber.trim()) {
-      Alert.alert('Error', 'Please enter your mobile number');
-      return;
-    }
-    
+
     setIsProcessing(true);
-    
-    // Simulate API call with a delay
-    setTimeout(() => {
-      setIsProcessing(false);
-      
-      Alert.alert(
-        'Success',
-        'Your contribution has been processed successfully',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]
+    try {
+      // Make contribution API call
+      await api.contributions.makeContribution(
+        groupId,
+        groupData.contributionAmount,
+        selectedMethod
       );
-    }, 2000);
+      
+      // Show success message
+      if (selectedMethod === 'cash') {
+        Alert.alert(
+          'Manual Payment',
+          'Please inform the group admin about your cash payment.',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.navigate('GroupOverview', { groupId }),
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Payment Successful',
+          `You have successfully contributed ${formatCurrency(groupData.contributionAmount)} to ${groupData.name}`,
+          [
+            {
+              text: 'View Receipt',
+              onPress: () => {
+                // In a real app, you would show the receipt
+                navigation.navigate('GroupOverview', { groupId });
+              },
+            },
+            {
+              text: 'Done',
+              onPress: () => navigation.navigate('GroupOverview', { groupId }),
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Payment failed:', error);
+      Alert.alert('Payment Failed', error.message || 'Something went wrong with your payment');
+    } finally {
+      setIsProcessing(false);
+    }
   };
-  
-  const formatCurrency = (value) => {
-    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' TZS';
-  };
-  
+
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color="#009E60" />
       </View>
     );
   }
-  
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -103,150 +120,75 @@ const MakeContributionScreen = () => {
         >
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Make Contribution</Text>
+        <Text style={styles.headerTitle}>Contribute Funds</Text>
         <View style={{ width: 24 }} />
       </View>
-      
+
       <ScrollView style={styles.content}>
         <View style={styles.groupInfoCard}>
-          <Text style={styles.groupName}>{group.name}</Text>
-          <Text style={styles.contributionPeriod}>
-            Contribution for {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-          </Text>
+          <Text style={styles.groupName}>{groupData?.name}</Text>
           <View style={styles.amountContainer}>
-            <Text style={styles.amountLabel}>Required Amount:</Text>
-            <Text style={styles.amountValue}>{formatCurrency(group.contribution_amount)}</Text>
+            <Text style={styles.amountLabel}>Amount Due</Text>
+            <Text style={styles.amount}>
+              {formatCurrency(groupData?.contributionAmount || 0)}
+            </Text>
+          </View>
+          <View style={styles.dueDateContainer}>
+            <Text style={styles.dueDateLabel}>Due Date</Text>
+            <Text style={styles.dueDate}>{groupData?.dueDate || 'N/A'}</Text>
           </View>
         </View>
-        
-        <View style={styles.formContainer}>
-          <Text style={styles.sectionTitle}>Payment Details</Text>
-          
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Amount (TZS)</Text>
-            <TextInput
-              style={styles.input}
-              value={amount}
-              onChangeText={setAmount}
-              placeholder="Enter amount"
-              keyboardType="numeric"
-            />
-          </View>
-          
-          <Text style={styles.inputLabel}>Payment Method</Text>
-          <View style={styles.paymentMethodsContainer}>
-            <TouchableOpacity
-              style={[
-                styles.paymentMethodOption,
-                paymentMethod === 'mobile_money' && styles.selectedPaymentMethod,
-              ]}
-              onPress={() => setPaymentMethod('mobile_money')}
-            >
-              <View style={[styles.iconPlaceholder, { backgroundColor: '#007AFF' }]}>
-                <Ionicons name="phone-portrait-outline" size={20} color="white" />
-              </View>
-              <Text
-                style={[
-                  styles.paymentMethodText,
-                  paymentMethod === 'mobile_money' && styles.selectedPaymentMethodText,
-                ]}
-              >
-                Mobile Money
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.paymentMethodOption,
-                paymentMethod === 'bank_transfer' && styles.selectedPaymentMethod,
-              ]}
-              onPress={() => setPaymentMethod('bank_transfer')}
-            >
-              <View style={[styles.iconPlaceholder, { backgroundColor: '#34C759' }]}>
-                <Ionicons name="card-outline" size={20} color="white" />
-              </View>
-              <Text
-                style={[
-                  styles.paymentMethodText,
-                  paymentMethod === 'bank_transfer' && styles.selectedPaymentMethodText,
-                ]}
-              >
-                Bank Transfer
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.paymentMethodOption,
-                paymentMethod === 'cash' && styles.selectedPaymentMethod,
-              ]}
-              onPress={() => setPaymentMethod('cash')}
-            >
-              <View style={[styles.iconPlaceholder, { backgroundColor: '#FF9500' }]}>
-                <Ionicons name="cash-outline" size={20} color="white" />
-              </View>
-              <Text
-                style={[
-                  styles.paymentMethodText,
-                  paymentMethod === 'cash' && styles.selectedPaymentMethodText,
-                ]}
-              >
-                Cash
-              </Text>
-            </TouchableOpacity>
-          </View>
-          
-          {paymentMethod === 'mobile_money' && (
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Mobile Number</Text>
-              <TextInput
-                style={styles.input}
-                value={mobileNumber}
-                onChangeText={setMobileNumber}
-                placeholder="Enter your mobile number"
-                keyboardType="phone-pad"
-              />
-            </View>
-          )}
-          
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Note (Optional)</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={note}
-              onChangeText={setNote}
-              placeholder="Add a note about your contribution"
-              multiline
-              numberOfLines={3}
-            />
-          </View>
-          
+
+        <Text style={styles.sectionTitle}>Select Payment Method</Text>
+
+        {paymentMethods.map((method) => (
           <TouchableOpacity
-            style={[styles.payButton, isProcessing && styles.disabledButton]}
-            onPress={handleMakeContribution}
-            disabled={isProcessing}
+            key={method.id}
+            style={[
+              styles.paymentMethodCard,
+              selectedMethod === method.id && styles.selectedPaymentMethod,
+            ]}
+            onPress={() => setSelectedMethod(method.id)}
           >
-            {isProcessing ? (
-              <ActivityIndicator color="white" size="small" />
-            ) : (
-              <Text style={styles.payButtonText}>Make Contribution</Text>
+            <Image source={{ uri: method.iconUrl }} style={styles.paymentMethodIcon} />
+            <Text style={styles.paymentMethodName}>{method.name}</Text>
+            {selectedMethod === method.id && (
+              <Ionicons
+                name="checkmark-circle"
+                size={24}
+                color="#009E60"
+                style={styles.checkIcon}
+              />
             )}
           </TouchableOpacity>
-        </View>
-        
-        <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Payment Information</Text>
-          <Text style={styles.infoText}>
-            Your contribution will be recorded immediately. If you selected Mobile Money or Bank Transfer, please complete the payment process through your provider.
-          </Text>
-          <Text style={styles.infoText}>
-            For cash payments, please contact your group administrator to confirm receipt.
+        ))}
+
+        <View style={styles.noteContainer}>
+          <Ionicons name="information-circle-outline" size={20} color="#666" />
+          <Text style={styles.noteText}>
+            Your contribution will be recorded immediately after successful payment.
           </Text>
         </View>
-        
-        {/* Extra space at bottom */}
-        <View style={{ height: 30 }} />
       </ScrollView>
+
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={[
+            styles.payButton,
+            (!selectedMethod || isProcessing) && styles.disabledButton,
+          ]}
+          onPress={handlePayment}
+          disabled={!selectedMethod || isProcessing}
+        >
+          {isProcessing ? (
+            <ActivityIndicator color="white" size="small" />
+          ) : (
+            <Text style={styles.payButtonText}>
+              Pay {formatCurrency(groupData?.contributionAmount || 0)}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -257,7 +199,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   loadingContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -299,109 +240,92 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 5,
-  },
-  contributionPeriod: {
-    fontSize: 14,
-    color: '#666',
     marginBottom: 15,
   },
   amountContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#f9f9f9',
-    borderRadius: 10,
-    padding: 15,
+    marginBottom: 10,
   },
   amountLabel: {
     fontSize: 14,
     color: '#666',
   },
-  amountValue: {
-    fontSize: 18,
+  amount: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#009E60',
   },
-  formContainer: {
+  dueDateContainer: {},
+  dueDateLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  dueDate: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333',
+  },
+  paymentMethodCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 20,
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 20,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-    marginBottom: 10,
-  },
-  input: {
-    backgroundColor: '#f9f9f9',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    padding: 15,
-    fontSize: 16,
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  paymentMethodsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  paymentMethodOption: {
-    width: '30%',
-    alignItems: 'center',
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-  },
   selectedPaymentMethod: {
+    borderWidth: 2,
     borderColor: '#009E60',
-    backgroundColor: 'rgba(0, 158, 96, 0.05)',
   },
-  iconPlaceholder: {
+  paymentMethodIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 5,
+    marginRight: 15,
   },
-  paymentMethodText: {
-    fontSize: 12,
+  paymentMethodName: {
+    fontSize: 16,
     color: '#333',
-    textAlign: 'center',
+    flex: 1,
   },
-  selectedPaymentMethodText: {
-    color: '#009E60',
-    fontWeight: '500',
+  checkIcon: {
+    marginLeft: 10,
+  },
+  noteContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 158, 96, 0.1)',
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  noteText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 10,
+    flex: 1,
+  },
+  footer: {
+    padding: 20,
+    backgroundColor: 'white',
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
   },
   payButton: {
     backgroundColor: '#009E60',
     paddingVertical: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 10,
   },
   disabledButton: {
     backgroundColor: '#ccc',
@@ -411,29 +335,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  infoCard: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-    marginBottom: 10,
-  },
 });
 
-export default MakeContributionScreen;
+export default ContributeScreen;

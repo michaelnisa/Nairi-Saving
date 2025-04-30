@@ -4,7 +4,7 @@ import {
   DarkTheme,
   DefaultTheme,
   NavigationContainer,
-} from "@react-navigation/native";
+} from "@react-navigation/native"; // Removed NavigationProvider
 import { createStackNavigator } from "@react-navigation/stack";
 import { StatusBar } from "expo-status-bar";
 
@@ -24,14 +24,12 @@ import ManageMembersScreen from "../screens/ManageMembersScreen";
 import EditGroupScreen from "../screens/EditGroupScreen";
 import MakeContributionScreen from "../screens/MakeContributionScreen";
 import RequestLoanScreen from "../screens/RequestLoanScreen";
-import DisburseFundsScreen from "../screens/DisburseFundsScreen";
 
 
 
 export default function Navigation({ colorScheme }) {
   return (
     <NavigationContainer
-      // linking={LinkingConfiguration}
       theme={colorScheme === "dark" ? DarkTheme : DefaultTheme}
     >
       <StatusBar style="auto" />
@@ -65,12 +63,9 @@ function RootNavigator() {
       <Stack.Screen name="EditGroup" component={EditGroupScreen} /> 
       <Stack.Screen name="MakeContribution" component={MakeContributionScreen} />
       <Stack.Screen name="RequestLoan" component={RequestLoanScreen} />
-      <Stack.Screen name="DisburseFunds" component={DisburseFundsScreen} />
 
 
       
-    
-
     </Stack.Navigator>
   );
 }

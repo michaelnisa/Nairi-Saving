@@ -1,47 +1,48 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   FlatList,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-
-
-const groups = [
-  {
-    id: '1',
-    name: 'Family Savings',
-    balance: 1250000,
-    nextMember: 'John Doe',
-    nextDate: '15 Apr',
-    members: 8,
-    contributionStatus: true,
-  },
-  {
-    id: '2',
-    name: 'Office Chama',
-    balance: 750000,
-    nextMember: 'Jane Smith',
-    nextDate: '22 Apr',
-    members: 12,
-    contributionStatus: false,
-  },
-  {
-    id: '3',
-    name: 'Neighborhood Fund',
-    balance: 2000000,
-    nextMember: 'You',
-    nextDate: '30 Apr',
-    members: 15,
-    contributionStatus: true,
-  },
-];
+import api from '../screens/services/api';
+import { useAuth } from '../screens/context/AuthContext';
+import { useNavigation } from '../context/NavigationContext';
 
 const HomeScreen = () => {
-  const navigation = useNavigation();
+  const { navigate } = useNavigation();
+  const { user } = useAuth();
+  const [groups, setGroups] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchGroups = async () => {
+    try {
+      const groupsData = await api.groups.getGroups();
+      setGroups(groupsData);
+    } catch (error) {
+      console.error('Failed to fetch groups:', error);
+      Alert.alert('Error', 'Failed to load your groups. Please try again.');
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGroups();
+  }, []);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchGroups();
+  };
+
   const formatCurrency = (amount) => {
     return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' TZS';
   };
@@ -49,7 +50,7 @@ const HomeScreen = () => {
   const renderGroupCard = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate('GroupOverview', )}
+      onPress={() => navigate('GroupOverview', { groupId: item.id })}
     >
       <View style={styles.cardHeader}>
         <Text style={styles.groupName}>{item.name}</Text>
@@ -87,7 +88,7 @@ const HomeScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Hello, Sarah</Text>
+          <Text style={styles.greeting}>Hello, {user?.name || 'User'}</Text>
           <Text style={styles.subGreeting}>Manage your savings groups</Text>
         </View>
         <View style={styles.headerIcons}>
@@ -101,7 +102,7 @@ const HomeScreen = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.iconButton}
-            onPress={() => navigation.navigate('Profile')}
+            onPress={() => navigate('Profile')}
           >
             <Ionicons name="person-circle-outline" size={28} color="#333" />
           </TouchableOpacity>
@@ -110,14 +111,25 @@ const HomeScreen = () => {
 
       <View style={styles.content}>
         <Text style={styles.sectionTitle}>Your Groups</Text>
-
-        {groups.length > 0 ? (
+        
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#009E60" />
+          </View>
+        ) : groups.length > 0 ? (
           <FlatList
             data={groups}
             renderItem={renderGroupCard}
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.groupsList}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                colors={['#009E60']}
+              />
+            }
           />
         ) : (
           <View style={styles.emptyState}>
@@ -132,19 +144,22 @@ const HomeScreen = () => {
       <View style={styles.actionButtons}>
         <TouchableOpacity
           style={[styles.actionButton, styles.joinButton]}
-          onPress={() => navigation.navigate('JoinGroup')}
+          onPress={() => navigate('JoinGroup')}
         >
           <Ionicons name="log-in-outline" size={20} color="white" />
           <Text style={styles.actionButtonText}>Join Group</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionButton, styles.createButton]}
-          onPress={() => navigation.navigate('CreateGroup')}
+          onPress={() => navigate('CreateGroup')}
         >
           <Ionicons name="add-outline" size={20} color="white" />
           <Text style={styles.actionButtonText}>Create Group</Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity onPress={() => navigate('Auth')}>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -196,6 +211,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 15,
     color: '#333',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   groupsList: {
     paddingBottom: 100, // Extra space for the action buttons

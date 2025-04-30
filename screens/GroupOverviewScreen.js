@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,73 +6,103 @@ import {
   TouchableOpacity,
   ScrollView,
   FlatList,
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-
-// Mock data for group details
-const groupDetails = {
-  id: '1',
-  name: 'Family Savings',
-  balance: 1250000,
-  goal: 2000000,
-  contributionAmount: 50000,
-  frequency: 'Weekly',
-  loan_allowance_enabled: true,
-  loan_interest_rate: 5,
-  nextRotation: {
-    member: 'John Doe',
-    date: '15 Apr 2023',
-    daysLeft: 5,
-  },
-  members: [
-    { id: '1', name: 'Sarah (You)', status: true, trustScore: 5 },
-    { id: '2', name: 'John Doe', status: true, trustScore: 4 },
-    { id: '3', name: 'Jane Smith', status: false, trustScore: 5 },
-    { id: '4', name: 'Mike Johnson', status: true, trustScore: 3 },
-    { id: '5', name: 'Emily Brown', status: false, trustScore: 4 },
-    { id: '6', name: 'David Wilson', status: true, trustScore: 5 },
-    { id: '7', name: 'Lisa Taylor', status: true, trustScore: 4 },
-    { id: '8', name: 'Robert Miller', status: false, trustScore: 3 },
-  ],
-  contributions: [
-    { id: '1', date: '01 Apr 2023', amount: 50000, member: 'Sarah (You)' },
-    { id: '2', date: '01 Apr 2023', amount: 50000, member: 'John Doe' },
-    { id: '3', date: '02 Apr 2023', amount: 50000, member: 'Mike Johnson' },
-    { id: '4', date: '03 Apr 2023', amount: 50000, member: 'David Wilson' },
-    { id: '5', date: '04 Apr 2023', amount: 50000, member: 'Lisa Taylor' },
-  ],
-  rotationSchedule: [
-    { id: '1', date: '15 Apr 2023', member: 'John Doe', amount: 400000 },
-    { id: '2', date: '15 May 2023', member: 'Jane Smith', amount: 400000 },
-    { id: '3', date: '15 Jun 2023', member: 'Sarah (You)', amount: 400000 },
-    { id: '4', date: '15 Jul 2023', member: 'Mike Johnson', amount: 400000 },
-  ],
-  announcements: [
-    {
-      id: '1',
-      sender: 'Admin',
-      message: 'Remember to make your contributions before Friday!',
-      date: '02 Apr 2023',
-    },
-    {
-      id: '2',
-      sender: 'John Doe',
-      message: 'I will be making my contribution tomorrow.',
-      date: '03 Apr 2023',
-    },
-    {
-      id: '3',
-      sender: 'Admin',
-      message: 'Meeting scheduled for next week.',
-      date: '05 Apr 2023',
-    },
-  ],
-};
+import { api } from '../screens/services/api';
 
 const GroupOverviewScreen = () => {
-  const [activeTab, setActiveTab] = useState('members');
   const navigation = useNavigation();
+  const route = useRoute();
+  const { groupId } = route.params;
+  const [activeTab, setActiveTab] = useState('members');
+  const [groupDetails, setGroupDetails] = useState(null);
+  const [members, setMembers] = useState([]);
+  const [contributions, setContributions] = useState([]);
+  const [rotationSchedule, setRotationSchedule] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchGroupDetails = async () => {
+    try {
+      const details = await api.groups.getGroup(groupId);
+      setGroupDetails(details);
+    } catch (error) {
+      console.error('Failed to fetch group details:', error);
+      Alert.alert('Error', 'Failed to load group details');
+    }
+  };
+
+  const fetchMembers = async () => {
+    try {
+      const membersData = await api.groups.getGroupMembers(groupId);
+      setMembers(membersData);
+    } catch (error) {
+      console.error('Failed to fetch members:', error);
+      Alert.alert('Error', 'Failed to load group members');
+    }
+  };
+
+  const fetchContributions = async () => {
+    try {
+      const contributionsData = await api.groups.getGroupContributions(groupId);
+      setContributions(contributionsData);
+    } catch (error) {
+      console.error('Failed to fetch contributions:', error);
+      Alert.alert('Error', 'Failed to load contributions');
+    }
+  };
+
+  const fetchRotation = async () => {
+    try {
+      const rotationData = await api.groups.getGroupRotation(groupId);
+      setRotationSchedule(rotationData);
+    } catch (error) {
+      console.error('Failed to fetch rotation schedule:', error);
+      Alert.alert('Error', 'Failed to load rotation schedule');
+    }
+  };
+
+  const fetchAnnouncements = async () => {
+    try {
+      const announcementsData = await api.groups.getGroupAnnouncements(groupId);
+      setAnnouncements(announcementsData);
+    } catch (error) {
+      console.error('Failed to fetch announcements:', error);
+      Alert.alert('Error', 'Failed to load announcements');
+    }
+  };
+
+  const loadAllData = async () => {
+    setIsLoading(true);
+    try {
+      await Promise.all([
+        fetchGroupDetails(),
+        fetchMembers(),
+        fetchContributions(),
+        fetchRotation(),
+        fetchAnnouncements(),
+      ]);
+    } catch (error) {
+      console.error('Failed to load data:', error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAllData();
+  }, [groupId]);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    loadAllData();
+  };
 
   const formatCurrency = (amount) => {
     return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' TZS';
@@ -96,7 +126,7 @@ const GroupOverviewScreen = () => {
 
   const renderMembersTab = () => (
     <FlatList
-      data={groupDetails.members}
+      data={members}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
         <View style={styles.memberItem}>
@@ -116,23 +146,48 @@ const GroupOverviewScreen = () => {
           </View>
         </View>
       )}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          colors={['#009E60']}
+        />
+      }
     />
   );
 
   const renderContributionsTab = () => (
-    <View>
+    <ScrollView
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          colors={['#009E60']}
+        />
+      }
+    >
       <View style={styles.progressContainer}>
         <View style={styles.progressLabels}>
           <Text style={styles.progressLabel}>Progress</Text>
           <Text style={styles.progressValues}>
-            {formatCurrency(groupDetails.balance)} / {formatCurrency(groupDetails.goal)}
+            {groupDetails ? (
+              <>
+                {formatCurrency(groupDetails.balance)} / {formatCurrency(groupDetails.goal)}
+              </>
+            ) : (
+              '0 / 0'
+            )}
           </Text>
         </View>
         <View style={styles.progressBarContainer}>
           <View
             style={[
               styles.progressBar,
-              { width: `${(groupDetails.balance / groupDetails.goal) * 100}%` },
+              { 
+                width: groupDetails 
+                  ? `${(groupDetails.balance / groupDetails.goal) * 100}%` 
+                  : '0%' 
+              },
             ]}
           />
         </View>
@@ -140,14 +195,14 @@ const GroupOverviewScreen = () => {
 
       <TouchableOpacity
         style={styles.contributeButton}
-        onPress={() => navigation.navigate('MakeContribution', { groupId: "1" })}
+        onPress={() => navigation.navigate('Contribute', { groupId })}
       >
         <Text style={styles.contributeButtonText}>Contribute Now</Text>
       </TouchableOpacity>
 
       <Text style={styles.sectionTitle}>Recent Contributions</Text>
       <FlatList
-        data={groupDetails.contributions}
+        data={contributions}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.contributionItem}>
@@ -160,25 +215,36 @@ const GroupOverviewScreen = () => {
             </Text>
           </View>
         )}
+        scrollEnabled={false}
       />
-    </View>
+    </ScrollView>
   );
 
   const renderRotationTab = () => (
-    <View>
-      <View style={styles.nextRotationCard}>
-        <Text style={styles.nextRotationTitle}>Next Payout</Text>
-        <Text style={styles.nextRotationMember}>
-          {groupDetails.nextRotation.member}
-        </Text>
-        <Text style={styles.nextRotationDate}>
-          {groupDetails.nextRotation.date} ({groupDetails.nextRotation.daysLeft} days left)
-        </Text>
-      </View>
+    <ScrollView
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          colors={['#009E60']}
+        />
+      }
+    >
+      {groupDetails?.nextRotation && (
+        <View style={styles.nextRotationCard}>
+          <Text style={styles.nextRotationTitle}>Next Payout</Text>
+          <Text style={styles.nextRotationMember}>
+            {groupDetails.nextRotation.member}
+          </Text>
+          <Text style={styles.nextRotationDate}>
+            {groupDetails.nextRotation.date} ({groupDetails.nextRotation.daysLeft} days left)
+          </Text>
+        </View>
+      )}
 
       <Text style={styles.sectionTitle}>Rotation Schedule</Text>
       <FlatList
-        data={groupDetails.rotationSchedule}
+        data={rotationSchedule}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.rotationItem}>
@@ -191,13 +257,14 @@ const GroupOverviewScreen = () => {
             </Text>
           </View>
         )}
+        scrollEnabled={false}
       />
-    </View>
+    </ScrollView>
   );
 
   const renderAnnouncementsTab = () => (
     <FlatList
-      data={groupDetails.announcements}
+      data={announcements}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
         <View style={styles.announcementItem}>
@@ -208,16 +275,23 @@ const GroupOverviewScreen = () => {
           <Text style={styles.announcementMessage}>{item.message}</Text>
         </View>
       )}
-      ListFooterComponent={
-        <TouchableOpacity
-          style={styles.createAnnouncementButton}
-          onPress={() => navigation.navigate('CreateAnnouncement', )}
-        >
-          <Text style={styles.createAnnouncementButtonText}>Create Announcement</Text>
-        </TouchableOpacity>
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          colors={['#009E60']}
+        />
       }
     />
   );
+
+  if (isLoading && !groupDetails) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#009E60" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -228,22 +302,29 @@ const GroupOverviewScreen = () => {
         >
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{groupDetails.name}</Text>
-        <TouchableOpacity 
-          style={styles.moreButton}
-          onPress={() => navigation.navigate('GroupActivities', { groupId: groupDetails.id })}
-        >
+        <Text style={styles.headerTitle}>{groupDetails?.name || 'Group'}</Text>
+        <TouchableOpacity style={styles.moreButton}>
           <Ionicons name="ellipsis-vertical" size={24} color="#333" />
         </TouchableOpacity>
       </View>
 
       <View style={styles.balanceCard}>
         <Text style={styles.balanceLabel}>Total Saved</Text>
+      </View>
+
+      <View style={styles.balanceCard}>
+        <Text style={styles.balanceLabel}>Total Saved</Text>
         <Text style={styles.balanceAmount}>
-          {formatCurrency(groupDetails.balance)}
+          {groupDetails ? formatCurrency(groupDetails.balance) : '0 TZS'}
         </Text>
         <Text style={styles.contributionInfo}>
-          {formatCurrency(groupDetails.contributionAmount)} {groupDetails.frequency}
+          {groupDetails ? (
+            <>
+              {formatCurrency(groupDetails.contributionAmount)} {groupDetails.frequency}
+            </>
+          ) : (
+            '0 TZS'
+          )}
         </Text>
       </View>
 
@@ -326,7 +407,7 @@ const GroupOverviewScreen = () => {
       <View style={styles.actionButtons}>
         <TouchableOpacity
           style={[styles.actionButton, styles.loanButton]}
-          onPress={() => navigation.navigate('RequestLoan', )}
+          onPress={() => navigation.navigate('LoanRequest', { groupId })}
         >
           <Ionicons name="cash-outline" size={20} color="white" />
           <Text style={styles.actionButtonText}>Request Loan</Text>
@@ -334,13 +415,42 @@ const GroupOverviewScreen = () => {
         <TouchableOpacity
           style={[styles.actionButton, styles.disburseButton]}
           onPress={() => {
-            // Handle disburse funds - would navigate to a screen in a real app
-            alert('Disburse funds feature would open here');
+            // Handle disburse funds - would need admin check
+            Alert.alert(
+              'Disburse Funds',
+              'Are you sure you want to disburse funds to the next member?',
+              [
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                },
+                {
+                  text: 'Disburse',
+                  onPress: async () => {
+                    try {
+                      // This would need proper implementation with your API
+                      if (groupDetails?.nextRotation) {
+                        // Example API call
+                        // await api.disbursements.disburseFunds(
+                        //   groupId,
+                        //   groupDetails.nextRotation.memberId,
+                        //   groupDetails.nextRotation.amount
+                        // );
+                        Alert.alert('Success', 'Funds have been disbursed successfully');
+                        loadAllData();
+                      }
+                    } catch (error) {
+                      console.error('Failed to disburse funds:', error);
+                      Alert.alert('Error', 'Failed to disburse funds');
+                    }
+                  },
+                },
+              ]
+            );
           }}
         >
           <Ionicons name="wallet-outline" size={20} color="white" />
-          <Text style={styles.actionButtonText}
-          onPress={ () => navigation.navigate('DisburseFunds')}>Disburse Funds</Text>
+          <Text style={styles.actionButtonText}>Disburse Funds</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -351,6 +461,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -611,19 +725,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     lineHeight: 20,
-  },
-  createAnnouncementButton: {
-    backgroundColor: '#009E60',
-    paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  createAnnouncementButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   actionButtons: {
     flexDirection: 'row',

@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Image, Animated } from 'react-native';
+import { View, Text, StyleSheet, Image, Animated, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-
 
 const SplashScreen = () => {
   const navigation = useNavigation();
@@ -31,6 +30,14 @@ const SplashScreen = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  const handleSkip = () => {
+    navigation.navigate('Onboarding');
+  };
+
+  const handleNext = () => {
+    navigation.navigate('Onboarding');
+  };
+
   return (
     <View style={styles.container}>
       <Animated.View
@@ -43,12 +50,20 @@ const SplashScreen = () => {
         ]}
       >
         <Image
-          source={require('../assets/images/icon.png')}
+          // source={require('../assets/logo.png')}
           style={styles.logo}
           resizeMode="contain"
         />
         <Text style={styles.tagline}>Empowering Community Savings</Text>
       </Animated.View>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.button} onPress={handleSkip}>
+          <Text style={styles.buttonText}>Skip</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={handleNext}>
+          <Text style={styles.buttonText}>Next</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -73,6 +88,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
     textAlign: 'center',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    marginTop: 30,
+  },
+  button: {
+    backgroundColor: 'white',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginHorizontal: 10,
+  },
+  buttonText: {
+    color: '#009E60',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

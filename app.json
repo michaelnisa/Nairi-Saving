@@ -28,6 +28,16 @@
     "web": {
       "favicon": "./assets/images/favicon.png"
     },
+<<<<<<< HEAD
     "plugins": ["expo-font", "expo-asset"]
+=======
+    "plugins": [
+      "expo-font",
+      "expo-asset"
+    ],
+    "experimental": {
+      "newArchEnabled": true
+    }
+>>>>>>> c97dff5 ( change of Application and access of API of application)
   }
 }

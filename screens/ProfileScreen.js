@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,62 +7,49 @@ import {
   ScrollView,
   Switch,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-
-
-// Mock user data
-const userData = {
-  name: 'Sarah Johnson',
-  phone: '+255 712 345 678',
-  bio: 'Saving for a better future',
-  trustScore: 4.8,
-  walletBalance: 250000,
-  transactions: [
-    {
-      id: '1',
-      type: 'contribution',
-      group: 'Family Savings',
-      amount: 50000,
-      date: '05 Apr 2023',
-    },
-    {
-      id: '2',
-      type: 'payout',
-      group: 'Office Chama',
-      amount: 600000,
-      date: '28 Mar 2023',
-    },
-    {
-      id: '3',
-      type: 'contribution',
-      group: 'Neighborhood Fund',
-      amount: 50000,
-      date: '21 Mar 2023',
-    },
-    {
-      id: '4',
-      type: 'loan',
-      group: 'Family Savings',
-      amount: 200000,
-      date: '15 Mar 2023',
-    },
-    {
-      id: '5',
-      type: 'repayment',
-      group: 'Family Savings',
-      amount: 210000,
-      date: '10 Mar 2023',
-    },
-  ],
-};
+import { api } from '../screens/services/api';
+import { useAuth } from '../screens/context/AuthContext';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
+  const { user, logout } = useAuth();
+  const [userData, setUserData] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch user profile
+        const profile = await api.user.getProfile();
+        setUserData(profile);
+        
+        // Fetch wallet balance
+        const wallet = await api.user.getWalletBalance();
+        setWalletBalance(wallet.balance);
+        
+        // Fetch transactions
+        const userTransactions = await api.user.getTransactions();
+        setTransactions(userTransactions);
+      } catch (error) {
+        console.error('Failed to fetch user data:', error);
+        Alert.alert('Error', 'Failed to load profile data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   const formatCurrency = (amount) => {
     return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' TZS';
@@ -97,7 +84,7 @@ const ProfileScreen = () => {
     );
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     Alert.alert(
       'Logout',
       'Are you sure you want to logout?',
@@ -107,11 +94,28 @@ const ProfileScreen = () => {
           style: 'cancel',
         },
         {
-          onPress: () => navigation.navigate('Auth'),
+          text: 'Logout',
+          onPress: async () => {
+            try {
+              await logout();
+              // Navigation is handled by the AuthContext
+            } catch (error) {
+              console.error('Logout failed:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
+          },
         },
       ]
     );
   };
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#009E60" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -132,22 +136,22 @@ const ProfileScreen = () => {
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
             <Text style={styles.avatarText}>
-              {userData.name.split(' ').map(n => n[0]).join('')}
+              {userData?.name?.split(' ').map(n => n[0]).join('') || user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
             </Text>
           </View>
-          <Text style={styles.userName}>{userData.name}</Text>
-          <Text style={styles.userPhone}>{userData.phone}</Text>
-          <Text style={styles.userBio}>{userData.bio}</Text>
+          <Text style={styles.userName}>{userData?.name || user?.name || 'User'}</Text>
+          <Text style={styles.userPhone}>{userData?.phoneNumber || user?.phoneNumber || ''}</Text>
+          <Text style={styles.userBio}>{userData?.bio || 'No bio available'}</Text>
           <View style={styles.trustScoreContainer}>
             <Text style={styles.trustScoreLabel}>Trust Score:</Text>
-            {renderTrustScore(userData.trustScore)}
+            {renderTrustScore(userData?.trustScore || 0)}
           </View>
         </View>
 
         <View style={styles.walletSection}>
           <Text style={styles.sectionTitle}>Wallet Balance</Text>
           <Text style={styles.walletBalance}>
-            {formatCurrency(userData.walletBalance)}
+            {formatCurrency(walletBalance)}
           </Text>
           <View style={styles.walletActions}>
             <TouchableOpacity style={styles.walletAction}>
@@ -163,59 +167,63 @@ const ProfileScreen = () => {
 
         <View style={styles.transactionsSection}>
           <Text style={styles.sectionTitle}>Recent Transactions</Text>
-          {userData.transactions.map((transaction) => (
-            <View key={transaction.id} style={styles.transactionItem}>
-              <View style={styles.transactionIconContainer}>
-                <Ionicons
-                  name={
-                    transaction.type === 'contribution'
-                      ? 'arrow-up-circle'
-                      : transaction.type === 'payout'
+          {transactions.length > 0 ? (
+            transactions.map((transaction) => (
+              <View key={transaction.id} style={styles.transactionItem}>
+                <View style={styles.transactionIconContainer}>
+                  <Ionicons
+                    name={
+                      transaction.type === 'contribution'
+                        ? 'arrow-up-circle'
+                        : transaction.type === 'payout'
                         ? 'cash'
                         : transaction.type === 'loan'
-                          ? 'arrow-down-circle'
-                          : 'repeat'
-                  }
-                  size={24}
-                  color={
-                    transaction.type === 'contribution' || transaction.type === 'repayment'
-                      ? '#FF6B6B'
-                      : '#009E60'
-                  }
-                />
+                        ? 'arrow-down-circle'
+                        : 'repeat'
+                    }
+                    size={24}
+                    color={
+                      transaction.type === 'contribution' || transaction.type === 'repayment'
+                        ? '#FF6B6B'
+                        : '#009E60'
+                    }
+                  />
+                </View>
+                <View style={styles.transactionInfo}>
+                  <Text style={styles.transactionType}>
+                    {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
+                  </Text>
+                  <Text style={styles.transactionGroup}>{transaction.group}</Text>
+                </View>
+                <View style={styles.transactionDetails}>
+                  <Text
+                    style={[
+                      styles.transactionAmount,
+                      {
+                        color:
+                          transaction.type === 'contribution' || transaction.type === 'repayment'
+                            ? '#FF6B6B'
+                            : '#009E60',
+                      },
+                    ]}
+                  >
+                    {transaction.type === 'contribution' || transaction.type === 'repayment'
+                      ? '-'
+                      : '+'}
+                    {formatCurrency(transaction.amount)}
+                  </Text>
+                  <Text style={styles.transactionDate}>{transaction.date}</Text>
+                </View>
               </View>
-              <View style={styles.transactionInfo}>
-                <Text style={styles.transactionType}>
-                  {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
-                </Text>
-                <Text style={styles.transactionGroup}>{transaction.group}</Text>
-              </View>
-              <View style={styles.transactionDetails}>
-                <Text
-                  style={[
-                    styles.transactionAmount,
-                    {
-                      color:
-                        transaction.type === 'contribution' || transaction.type === 'repayment'
-                          ? '#FF6B6B'
-                          : '#009E60',
-                    },
-                  ]}
-                >
-                  {transaction.type === 'contribution' || transaction.type === 'repayment'
-                    ? '-'
-                    : '+'}
-                  {formatCurrency(transaction.amount)}
-                </Text>
-                <Text style={styles.transactionDate}>{transaction.date}</Text>
-              </View>
-            </View>
-          ))}
+            ))
+          ) : (
+            <Text style={styles.emptyText}>No recent transactions</Text>
+          )}
         </View>
 
         <View style={styles.settingsSection}>
           <Text style={styles.sectionTitle}>Settings</Text>
-
+          
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
               <Ionicons name="notifications-outline" size={20} color="#333" />
@@ -228,7 +236,7 @@ const ProfileScreen = () => {
               thumbColor="white"
             />
           </View>
-
+          
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
               <Ionicons name="finger-print-outline" size={20} color="#333" />
@@ -241,7 +249,7 @@ const ProfileScreen = () => {
               thumbColor="white"
             />
           </View>
-
+          
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
               <Ionicons name="moon-outline" size={20} color="#333" />
@@ -254,25 +262,25 @@ const ProfileScreen = () => {
               thumbColor="white"
             />
           </View>
-
+          
           <TouchableOpacity style={styles.settingButton}>
             <Ionicons name="language-outline" size={20} color="#333" />
             <Text style={styles.settingButtonText}>Language</Text>
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
-
+          
           <TouchableOpacity style={styles.settingButton}>
             <Ionicons name="shield-checkmark-outline" size={20} color="#333" />
             <Text style={styles.settingButtonText}>Privacy & Security</Text>
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
-
+          
           <TouchableOpacity style={styles.settingButton}>
             <Ionicons name="help-circle-outline" size={20} color="#333" />
             <Text style={styles.settingButtonText}>Help & Support</Text>
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
-
+          
           <TouchableOpacity
             style={[styles.settingButton, styles.logoutButton]}
             onPress={handleLogout}
@@ -290,6 +298,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -415,6 +427,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#666',
+    marginTop: 20,
+    marginBottom: 20,
   },
   transactionItem: {
     flexDirection: 'row',

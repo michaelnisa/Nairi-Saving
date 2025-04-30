@@ -1,0 +1,143 @@
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import api, { setAuthToken } from '../../api'; // Ensure the correct relative path to your API module
+import { Animated } from 'react-native';
+import { useNavigation } from '../../context/NavigationContext'; // Import useNavigation
+
+const AuthContext = createContext();
+
+// Example animation function
+const startAnimation = (animatedValue) => {
+  Animated.timing(animatedValue, {
+    toValue: 1,
+    duration: 500,
+    useNativeDriver: Animated.useNativeDriver !== undefined, // Fallback check
+  }).start();
+};
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { navigate } = useNavigation(); // Use navigate from NavigationContext
+
+  // Check for stored token on app start
+  useEffect(() => {
+    const loadToken = async () => {
+      try {
+        const token = await AsyncStorage.getItem('authToken');
+        if (token) {
+          console.log('Token found, setting auth token:', token); // Debug log
+          setAuthToken(token); // Set the token for API requests
+          // Fetch user profile
+          const userData = await api.user.getProfile();
+          setUser(userData);
+        }
+      } catch (error) {
+        console.error('Failed to load auth token:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadToken();
+  }, []);
+
+  const login = async (phoneNumber, pin) => {
+    setIsLoading(true);
+    try {
+      console.log('Calling API login with:', { phoneNumber, pin }); // Debug log
+      const response = await api.auth.login(phoneNumber, pin);
+      console.log('Login response:', response); // Log backend response
+      await AsyncStorage.setItem('authToken', response.token); // Save token securely
+      setAuthToken(response.token); // Set token for API requests
+      setUser(response.user); // Update authentication state
+      navigate('Home'); // Redirect to Home screen
+    } catch (error) {
+      console.error('Login failed:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (phoneNumber, otp, pin) => {
+    setIsLoading(true);
+    try {
+      console.log('Calling API register with:', { phoneNumber, otp, pin }); // Debug log
+      const response = await api.auth.register(phoneNumber, otp, pin);
+      console.log('Register response:', response); // Log backend response
+      await AsyncStorage.setItem('authToken', response.token);
+      setUser(response.user);
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const sendOtp = async (phoneNumber) => {
+    try {
+      console.log('Calling API sendOtp with:', { phoneNumber }); // Debug log
+      const response = await api.auth.sendOtp(phoneNumber);
+      console.log('Send OTP response:', response); // Log backend response
+    } catch (error) {
+      console.error('Failed to send OTP:', error);
+      throw error;
+    }
+  };
+
+  const resetPin = async (phoneNumber, otp, newPin) => {
+    try {
+      console.log('Calling API resetPin with:', { phoneNumber, otp, newPin }); // Debug log
+      const response = await api.auth.resetPin(phoneNumber, otp, newPin);
+      console.log('Reset PIN response:', response); // Log backend response
+    } catch (error) {
+      console.error('Failed to reset PIN:', error);
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      await api.auth.logout();
+      await AsyncStorage.removeItem('authToken');
+      setUser(null);
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Still remove token and user even if API call fails
+      await AsyncStorage.removeItem('authToken');
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        login,
+        register,
+        sendOtp,
+        resetPin,
+        logout,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+export default AuthContext;

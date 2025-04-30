@@ -7,9 +7,7 @@ import {
   Dimensions,
   TouchableOpacity,
   Image,
-  ViewToken
 } from 'react-native';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
@@ -18,31 +16,37 @@ const slides = [
     id: '1',
     title: 'Save Together',
     description: 'Join forces with your community to achieve your financial goals faster.',
-    image: '../assets/images/icon.png', // No image for now
+    image: require('../assets/images/icon.png'), // Fixed image import
   },
   {
     id: '2',
     title: 'Track Contributions',
     description: 'Easily monitor who has contributed and when payments are due.',
-    image: '../assets/images/icon.png', // No image for now
+    image: require('../assets/images/icon.png'), // Fixed image import
   },
   {
     id: '3',
     title: 'Transparent Rotations',
     description: 'Fair and clear rotation system ensures everyone gets their turn.',
-    image: '../assets/images/icon.png', // No image for now
+    image: require('../assets/images/icon.png'), // Fixed image import
   },
 ];
 
-const OnboardingScreen = () => {
+const OnboardingScreen = ({ navigation }) => { // Accept navigation as a prop
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef(null);
-  const navigation = useNavigation();
 
   const renderItem = ({ item }) => {
     return (
       <View style={styles.slide}>
-        <Image source={item.image} style={styles.image} resizeMode="contain" />
+        {/* Fix 3: Add error handling for images */}
+        <Image 
+          source={item.image} 
+          style={styles.image} 
+          resizeMode="contain"
+          // Add fallback for image loading errors
+          onError={(e) => console.log('Image loading error:', e.nativeEvent.error)}
+        />
         <Text style={styles.title}>{item.title}</Text>
         <Text style={styles.description}>{item.description}</Text>
       </View>
@@ -66,11 +70,10 @@ const OnboardingScreen = () => {
     navigation.navigate('Auth');
   };
 
+  // Fix 4: Properly define onViewableItemsChanged
   const onViewableItemsChanged = useRef(({ viewableItems }) => {
-    if (viewableItems.length > 0) {
-      if (viewableItems[0].index !== null) {
-        setCurrentIndex(viewableItems[0].index);
-      }
+    if (viewableItems && viewableItems.length > 0 && viewableItems[0].index !== null) {
+      setCurrentIndex(viewableItems[0].index);
     }
   }).current;
 
@@ -80,14 +83,18 @@ const OnboardingScreen = () => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+      <TouchableOpacity style={styles.skipButton} onPress={() => navigation.navigate('Auth')}>
         <Text style={styles.skipText}>Skip</Text>
       </TouchableOpacity>
 
       <FlatList
         ref={flatListRef}
         data={slides}
-        renderItem={renderItem}
+        renderItem={({ item }) => (
+          <TouchableOpacity onPress={() => navigation.navigate('Auth')}>
+            {renderItem({ item })}
+          </TouchableOpacity>
+        )}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -108,9 +115,22 @@ const OnboardingScreen = () => {
         ))}
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleNext}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => {
+          if (currentIndex === slides.length - 1) {
+            navigation.navigate('Auth'); // Navigate to AuthScreen on "Get Started"
+          } else {
+            handleNext(); // Navigate to the next slide
+          }
+        }}
+      >
         <Text style={styles.buttonText}>
-          {currentIndex === slides.length - 1 ? 'Get Started' : 'Next'}
+          {slides.length > 0 && currentIndex >= 0 && currentIndex < slides.length
+            ? (currentIndex === slides.length - 1 
+                ? 'Get Started' 
+                : 'Next') 
+            : 'Next'}
         </Text>
       </TouchableOpacity>
     </View>

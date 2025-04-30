@@ -1,79 +1,70 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Image,
+  
   Alert,
+  ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-
-
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-
-
-// Mock data for the group
-const groupData = {
-  id: '1',
-  name: 'Family Savings',
-  contributionAmount: 50000,
-  dueDate: '10 Apr 2023',
-};
-
-// Mock payment methods
-const paymentMethods = [
-  {
-    id: 'mpesa',
-    name: 'M-Pesa',
-    // icon: require('../assets/mpesa.png'),
-  },
-  {
-    id: 'tigopesa',
-    name: 'Tigo Pesa',
-    // icon: require('../assets/tigopesa.png'),
-  },
-  {
-    id: 'airtel',
-    name: 'Airtel Money',
-    // icon: require('../assets/airtel.png'),
-  },
-  {
-    id: 'bank',
-    name: 'Bank Transfer',
-    // icon: require('../assets/bank.png'),
-  },
-  {
-    id: 'cash',
-    name: 'Cash',
-    // icon: require('../assets/cash.png'),
-  },
-];
+import { api } from '../screens/services/api';
 
 const ContributeScreen = () => {
-  // Removed incorrect navigation declaration
-
-  const [selectedMethod, setSelectedMethod] = useState(null);
   const navigation = useNavigation();
+  const route = useRoute();
+  const { groupId } = route.params;
+  const [groupData, setGroupData] = useState(null);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [selectedMethod, setSelectedMethod] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch group details
+        const groupDetails = await api.groups.getGroup(groupId);
+        setGroupData(groupDetails);
+        
+        // Fetch payment methods
+        const methods = await api.contributions.getPaymentMethods();
+        setPaymentMethods(methods);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+        Alert.alert('Error', 'Failed to load data. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [groupId]);
 
   const formatCurrency = (amount) => {
     return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' TZS';
   };
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     if (!selectedMethod) {
       Alert.alert('Error', 'Please select a payment method');
       return;
     }
 
     setIsProcessing(true);
-
-    // Simulate payment processing
-    setTimeout(() => {
-      setIsProcessing(false);
-
+    try {
+      // Make contribution API call
+      await api.contributions.makeContribution(
+        groupId,
+        groupData.contributionAmount,
+        selectedMethod
+      );
+      
+      // Show success message
       if (selectedMethod === 'cash') {
         Alert.alert(
           'Manual Payment',
@@ -81,12 +72,11 @@ const ContributeScreen = () => {
           [
             {
               text: 'OK',
-              onPress: () => navigation.navigate('GroupOverview', { groupId: groupData.id }),
+              onPress: () => navigation.navigate('GroupOverview', { groupId }),
             },
           ]
         );
       } else {
-        // Show success and navigate back
         Alert.alert(
           'Payment Successful',
           `You have successfully contributed ${formatCurrency(groupData.contributionAmount)} to ${groupData.name}`,
@@ -95,18 +85,31 @@ const ContributeScreen = () => {
               text: 'View Receipt',
               onPress: () => {
                 // In a real app, you would show the receipt
-                navigation.navigate('GroupOverview', { groupId: groupData.id });
+                navigation.navigate('GroupOverview', { groupId });
               },
             },
             {
               text: 'Done',
-              onPress: () => navigation.navigate('GroupOverview', { groupId: groupData.id }),
+              onPress: () => navigation.navigate('GroupOverview', { groupId }),
             },
           ]
         );
       }
-    }, 2000);
+    } catch (error) {
+      console.error('Payment failed:', error);
+      Alert.alert('Payment Failed', error.message || 'Something went wrong with your payment');
+    } finally {
+      setIsProcessing(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#009E60" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -123,16 +126,16 @@ const ContributeScreen = () => {
 
       <ScrollView style={styles.content}>
         <View style={styles.groupInfoCard}>
-          <Text style={styles.groupName}>{groupData.name}</Text>
+          <Text style={styles.groupName}>{groupData?.name}</Text>
           <View style={styles.amountContainer}>
             <Text style={styles.amountLabel}>Amount Due</Text>
             <Text style={styles.amount}>
-              {formatCurrency(groupData.contributionAmount)}
+              {formatCurrency(groupData?.contributionAmount || 0)}
             </Text>
           </View>
           <View style={styles.dueDateContainer}>
             <Text style={styles.dueDateLabel}>Due Date</Text>
-            <Text style={styles.dueDate}>{groupData.dueDate}</Text>
+            <Text style={styles.dueDate}>{groupData?.dueDate || 'N/A'}</Text>
           </View>
         </View>
 
@@ -147,7 +150,8 @@ const ContributeScreen = () => {
             ]}
             onPress={() => setSelectedMethod(method.id)}
           >
-            {/* <Image source={method.icon} style={styles.paymentMethodIcon} /> */}
+            {/* Commenting out the image reference to avoid the missing asset error */}
+            {/* <Image source={{ uri: method.iconUrl }} style={styles.paymentMethodIcon} /> */}
             <Text style={styles.paymentMethodName}>{method.name}</Text>
             {selectedMethod === method.id && (
               <Ionicons
@@ -178,10 +182,10 @@ const ContributeScreen = () => {
           disabled={!selectedMethod || isProcessing}
         >
           {isProcessing ? (
-            <Text style={styles.payButtonText}>Processing...</Text>
+            <ActivityIndicator color="white" size="small" />
           ) : (
             <Text style={styles.payButtonText}>
-              Pay {formatCurrency(groupData.contributionAmount)}
+              Pay {formatCurrency(groupData?.contributionAmount || 0)}
             </Text>
           )}
         </TouchableOpacity>
@@ -194,6 +198,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
