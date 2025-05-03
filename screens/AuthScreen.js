@@ -130,7 +130,7 @@ const AuthScreen = () => {
           <Ionicons name="call-outline" size={20} color="#009E60" style={styles.inputIcon} />
           <TextInput
             style={styles.input}
-            placeholder="Phone Number"
+            placeholder="Phone"
             keyboardType="phone-pad"
             value={phoneNumber}
             onChangeText={setPhoneNumber}

@@ -42,11 +42,11 @@ export const AuthProvider = ({ children }) => {
     loadToken();
   }, []);
 
-  const login = async (phoneNumber, pin) => {
+  const login = async (phone, pin) => {
     setIsLoading(true);
     try {
-      console.log('Calling API login with:', { phoneNumber, pin }); // Debug log
-      const response = await api.auth.login(phoneNumber, pin);
+      console.log('Calling API login with:', { phone, pin }); // Debug log
+      const response = await api.auth.login(phone, pin);
       console.log('Login response:', response); // Log backend response
       await AsyncStorage.setItem('authToken', response.token); // Save token securely
       setAuthToken(response.token); // Set token for API requests
@@ -60,11 +60,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (phoneNumber, otp, pin) => {
+  const register = async (phone, otp, pin) => {
     setIsLoading(true);
     try {
-      console.log('Calling API register with:', { phoneNumber, otp, pin }); // Debug log
-      const response = await api.auth.register(phoneNumber, otp, pin);
+      console.log('Calling API register with:', { phone, otp, pin }); // Debug log
+      const response = await api.auth.register(phone, otp, pin);
       console.log('Register response:', response); // Log backend response
       await AsyncStorage.setItem('authToken', response.token);
       setUser(response.user);
@@ -76,10 +76,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const sendOtp = async (phoneNumber) => {
+  const sendOtp = async (phone) => {
     try {
-      console.log('Calling API sendOtp with:', { phoneNumber }); // Debug log
-      const response = await api.auth.sendOtp(phoneNumber);
+      console.log('Calling API sendOtp with:', { phone }); // Debug log
+      const response = await api.auth.sendOtp(phone);
       console.log('Send OTP response:', response); // Log backend response
     } catch (error) {
       console.error('Failed to send OTP:', error);
@@ -89,8 +89,8 @@ export const AuthProvider = ({ children }) => {
 
   const resetPin = async (phoneNumber, otp, newPin) => {
     try {
-      console.log('Calling API resetPin with:', { phoneNumber, otp, newPin }); // Debug log
-      const response = await api.auth.resetPin(phoneNumber, otp, newPin);
+      console.log('Calling API resetPin with:', { phone, otp, newPin }); // Debug log
+      const response = await api.auth.resetPin(phone, otp, newPin);
       console.log('Reset PIN response:', response); // Log backend response
     } catch (error) {
       console.error('Failed to reset PIN:', error);
