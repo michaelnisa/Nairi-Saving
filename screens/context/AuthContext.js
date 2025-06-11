@@ -2,7 +2,7 @@ import { Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import api, { setAuthToken } from '../../api'; // Ensure the correct relative path to your API module
+import api, { setAuthToken } from '../../api'; // Use setAuthToken from api/index.js
 
 const AuthContext = createContext();
 
@@ -27,9 +27,9 @@ export const AuthProvider = ({ children }) => {
         const token = await AsyncStorage.getItem('authToken');
         if (token) {
           console.log('Token found, setting auth token:', token); // Debug log
-          setAuthToken(token); // Set the token for API requests
+          setAuthToken(token); // Ensure token is set for all API requests
           // Fetch user profile
-          const userData = await api.user.getProfile();
+          const userData = await api.get('/user/profile'); // Correct endpoint
           setUser(userData);
         }
       } catch (error) {
@@ -48,10 +48,17 @@ export const AuthProvider = ({ children }) => {
       console.log('Calling API login with:', { phone, pin }); // Debug log
       const response = await api.auth.login(phone, pin);
       console.log('Login response:', response); // Log backend response
-      await AsyncStorage.setItem('authToken', response.token); // Save token securely
-      setAuthToken(response.token); // Set token for API requests
-      setUser(response.user); // Update authentication state
-      navigation.navigate("Home")
+
+      const token = response.access_token; // Extract access_token
+      if (token) {
+        await AsyncStorage.setItem('authToken', token); // Save token securely
+        setAuthToken(token); // Set token for API requests
+        setUser(response.user); // Update authentication state
+        navigation.navigate("Home");
+      } else {
+        console.error('Login failed: No access token received');
+        throw new Error('No access token received');
+      }
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
@@ -60,11 +67,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (phone, otp, pin) => {
+  const register = async (phone, otp, pin, name) => { // Use name directly
     setIsLoading(true);
     try {
-      console.log('Calling API register with:', { phone, otp, pin }); // Debug log
-      const response = await api.auth.register(phone, otp, pin);
+      console.log('Calling API register with:', { phone, otp, pin, name }); // Debug log
+      const response = await api.auth.register(phone, otp, pin, name); // Use name in API call
       console.log('Register response:', response); // Log backend response
       await AsyncStorage.setItem('authToken', response.token);
       setUser(response.user);
@@ -87,7 +94,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const resetPin = async (phoneNumber, otp, newPin) => {
+  const resetPin = async (phone, otp, newPin) => {
     try {
       console.log('Calling API resetPin with:', { phone, otp, newPin }); // Debug log
       const response = await api.auth.resetPin(phone, otp, newPin);

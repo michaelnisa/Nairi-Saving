@@ -28,14 +28,16 @@ export const getAuthToken = () => authToken;
 
 // Create default headers for requests
 const createHeaders = () => {
+  console.log('Current authToken:', authToken); // Debug log for authToken
   const headers = {
     'Content-Type': 'application/json',
   };
 
   if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
+    headers['Authorization'] = `Bearer ${authToken}`; // Ensure the token is included
   }
 
+  console.log('Generated headers:', headers); // Debug log for headers
   return headers;
 };
 
@@ -44,21 +46,21 @@ export const api = {
   // Auth endpoints
   auth: {
     // Send OTP to phone number
-    sendOtp: async (phoneNumber) => {
+    sendOtp: async (phone) => {
       const response = await fetch(`${API_BASE_URL}/auth/send-otp`, {
         method: 'POST',
         headers: createHeaders(),
-        body: JSON.stringify({ phoneNumber }),
+        body: JSON.stringify({ phone }),
       });
       return handleResponse(response);
     },
 
     // Verify OTP and register user
-    register: async (phoneNumber, otp, pin) => {
+    register: async (phone, otp, pin) => {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: createHeaders(),
-        body: JSON.stringify({ phoneNumber, otp, pin }),
+        body: JSON.stringify({ phone, otp, pin }),
       });
       const data = await handleResponse(response);
       if (data.token) {
@@ -68,11 +70,11 @@ export const api = {
     },
 
     // Login with phone and PIN
-    login: async (phoneNumber, pin) => {
+    login: async (phone, pin) => {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: createHeaders(),
-        body: JSON.stringify({ phoneNumber, pin }),
+        body: JSON.stringify({ phone, pin }),
       });
       const data = await handleResponse(response);
       if (data.token) {
@@ -82,11 +84,11 @@ export const api = {
     },
 
     // Reset PIN
-    resetPin: async (phoneNumber, otp, newPin) => {
+    resetPin: async (phone, otp, newPin) => {
       const response = await fetch(`${API_BASE_URL}/auth/reset-pin`, {
         method: 'POST',
         headers: createHeaders(),
-        body: JSON.stringify({ phoneNumber, otp, newPin }),
+        body: JSON.stringify({ phone, otp, newPin }),
       });
       return handleResponse(response);
     },
@@ -144,14 +146,14 @@ export const api = {
     // Get all groups for the user
     getGroups: async () => {
       const response = await fetch(`${API_BASE_URL}/groups`, {
-        headers: createHeaders(),
+        headers: createHeaders(), // Ensure headers include the Authorization token
       });
       return handleResponse(response);
     },
 
     // Get a specific group
     getGroup: async (groupId) => {
-      const response = await fetch(`${API_BASE_URL}/groups/${groupId}`, {
+      const response = await fetch(`${API_BASE_URL}/groups${groupId}`, {
         headers: createHeaders(),
       });
       return handleResponse(response);
@@ -276,5 +278,8 @@ export const api = {
     },
   },
 };
+
+// Debug log to verify the structure of the exported API object
+// console.log('Exporting API object:', api);
 
 export default api;

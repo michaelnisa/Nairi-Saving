@@ -1,4 +1,6 @@
-import React, { useState, useRef } from 'react';
+"use client"
+
+import { useState, useRef, useEffect } from "react"
 import {
   View,
   Text,
@@ -7,51 +9,95 @@ import {
   Dimensions,
   TouchableOpacity,
   Image,
-} from 'react-native';
+  Animated,
+  StatusBar,
+} from "react-native"
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window")
 
 const slides = [
   {
-    id: '1',
-    title: 'Save Together',
-    description: 'Join forces with your community to achieve your financial goals faster.',
-    image: require('../assets/images/icon.png'), // Fixed image import
+    id: "1",
+    title: "Save Together",
+    description: "Join forces with your community to achieve your financial goals faster.",
+    image: require("../assets/images/icon.png"),
   },
   {
-    id: '2',
-    title: 'Track Contributions',
-    description: 'Easily monitor who has contributed and when payments are due.',
-    image: require('../assets/images/icon.png'), // Fixed image import
+    id: "2",
+    title: "Track Contributions",
+    description: "Easily monitor who has contributed and when payments are due.",
+    image: require("../assets/images/icon.png"),
   },
   {
-    id: '3',
-    title: 'Transparent Rotations',
-    description: 'Fair and clear rotation system ensures everyone gets their turn.',
-    image: require('../assets/images/icon.png'), // Fixed image import
+    id: "3",
+    title: "Transparent Rotations",
+    description: "Fair and clear rotation system ensures everyone gets their turn.",
+    image: require("../assets/images/icon.png"),
   },
-];
+]
 
-const OnboardingScreen = ({ navigation }) => { // Accept navigation as a prop
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const flatListRef = useRef(null);
+const OnboardingScreen = ({ navigation }) => {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const flatListRef = useRef(null)
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const translateYAnim = useRef(new Animated.Value(50)).current
+
+  // Run entrance animation when slide changes
+  useEffect(() => {
+    // Reset animations
+    fadeAnim.setValue(0)
+    translateYAnim.setValue(50)
+
+    // Start animations
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateYAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start()
+  }, [currentIndex, fadeAnim, translateYAnim])
 
   const renderItem = ({ item }) => {
     return (
       <View style={styles.slide}>
-        {/* Fix 3: Add error handling for images */}
-        <Image 
-          source={item.image} 
-          style={styles.image} 
-          resizeMode="contain"
-          // Add fallback for image loading errors
-          onError={(e) => console.log('Image loading error:', e.nativeEvent.error)}
-        />
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.description}>{item.description}</Text>
+        <Animated.View
+          style={[
+            styles.imageContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: translateYAnim }],
+            },
+          ]}
+        >
+          <Image
+            source={item.image}
+            style={styles.image}
+            resizeMode="contain"
+            onError={(e) => console.log("Image loading error:", e.nativeEvent.error)}
+          />
+        </Animated.View>
+
+        <Animated.View
+          style={{
+            opacity: fadeAnim,
+            transform: [{ translateY: translateYAnim }],
+            alignItems: "center",
+          }}
+        >
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.description}>{item.description}</Text>
+        </Animated.View>
       </View>
-    );
-  };
+    )
+  }
 
   const handleNext = () => {
     if (currentIndex < slides.length - 1) {
@@ -59,151 +105,167 @@ const OnboardingScreen = ({ navigation }) => { // Accept navigation as a prop
         flatListRef.current.scrollToIndex({
           index: currentIndex + 1,
           animated: true,
-        });
+        })
       }
     } else {
-      navigation.navigate('Auth');
+      navigation.replace("Auth")
     }
-  };
+  }
 
   const handleSkip = () => {
-    navigation.navigate('Auth');
-  };
+    navigation.replace("Auth")
+  }
 
-  // Fix 4: Properly define onViewableItemsChanged
   const onViewableItemsChanged = useRef(({ viewableItems }) => {
     if (viewableItems && viewableItems.length > 0 && viewableItems[0].index !== null) {
-      setCurrentIndex(viewableItems[0].index);
+      setCurrentIndex(viewableItems[0].index)
     }
-  }).current;
+  }).current
 
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 50,
-  }).current;
+  }).current
+
+  const progressWidth = width * 0.7 * ((currentIndex + 1) / slides.length)
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.skipButton} onPress={() => navigation.navigate('Auth')}>
+      <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
+
+      <TouchableOpacity style={styles.skipButton} onPress={handleSkip} activeOpacity={0.7}>
         <Text style={styles.skipText}>Skip</Text>
       </TouchableOpacity>
 
       <FlatList
         ref={flatListRef}
         data={slides}
-        renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => navigation.navigate('Auth')}>
-            {renderItem({ item })}
-          </TouchableOpacity>
-        )}
+        renderItem={renderItem}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item) => item.id}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
+        scrollEnabled={true}
       />
 
-      <View style={styles.indicatorContainer}>
-        {slides.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.indicator,
-              index === currentIndex ? styles.activeIndicator : null,
-            ]}
-          />
-        ))}
-      </View>
+      <View style={styles.bottomContainer}>
+        {/* Progress bar instead of dots */}
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBackground} />
+          <Animated.View style={[styles.progressFill, { width: progressWidth }]} />
+        </View>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => {
-          if (currentIndex === slides.length - 1) {
-            navigation.navigate('Auth'); // Navigate to AuthScreen on "Get Started"
-          } else {
-            handleNext(); // Navigate to the next slide
-          }
-        }}
-      >
-        <Text style={styles.buttonText}>
-          {slides.length > 0 && currentIndex >= 0 && currentIndex < slides.length
-            ? (currentIndex === slides.length - 1 
-                ? 'Get Started' 
-                : 'Next') 
-            : 'Next'}
-        </Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={handleNext} activeOpacity={0.8}>
+          <Text style={styles.buttonText}>{currentIndex === slides.length - 1 ? "Get Started" : "Next"}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "white",
   },
   slide: {
     width,
-    alignItems: 'center',
-    padding: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 40,
   },
-  image: {
-    width: width * 0.7,
-    height: width * 0.7,
+  imageContainer: {
+    width: width * 0.8,
+    height: height * 0.4,
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 40,
   },
+  image: {
+    width: "100%",
+    height: "100%",
+  },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#009E60',
-    marginBottom: 10,
-    textAlign: 'center',
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#009E60",
+    marginBottom: 16,
+    textAlign: "center",
   },
   description: {
     fontSize: 16,
-    textAlign: 'center',
-    color: '#333',
+    textAlign: "center",
+    color: "#555",
+    lineHeight: 24,
+    maxWidth: width * 0.8,
   },
-  indicatorContainer: {
-    flexDirection: 'row',
-    marginBottom: 40,
+  bottomContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 40,
+    paddingBottom: 50,
+    alignItems: "center",
   },
-  indicator: {
-    height: 8,
-    width: 8,
-    borderRadius: 4,
-    backgroundColor: '#ccc',
-    marginHorizontal: 5,
+  progressContainer: {
+    width: width * 0.7,
+    height: 6,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 3,
+    marginBottom: 30,
+    overflow: "hidden",
   },
-  activeIndicator: {
-    backgroundColor: '#009E60',
-    width: 20,
+  progressBackground: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#E0E0E0",
+  },
+  progressFill: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    bottom: 0,
+    backgroundColor: "#009E60",
+    borderRadius: 3,
   },
   button: {
-    backgroundColor: '#009E60',
-    paddingVertical: 15,
+    backgroundColor: "#009E60",
+    paddingVertical: 16,
     paddingHorizontal: 40,
     borderRadius: 30,
-    marginBottom: 50,
+    width: width * 0.7,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
   },
   skipButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 50,
     right: 20,
     zIndex: 1,
+    padding: 10,
   },
   skipText: {
-    color: '#009E60',
+    color: "#009E60",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "600",
   },
-});
+})
 
-export default OnboardingScreen;
+export default OnboardingScreen

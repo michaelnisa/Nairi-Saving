@@ -8,6 +8,12 @@ module.exports = function (api) {
           // Use React 17 automatic JSX runtime.
           jsxRuntime: "automatic",
         },
+        //  "react-native-reanimated/plugin",
+        // ["module-resolver", {
+        //   alias: {
+        //     "^react-native$": "react-native"
+        //   }
+        // }]
       ],
     ],
   };

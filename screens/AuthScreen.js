@@ -16,17 +16,18 @@ import { useAuth } from '../screens/context/AuthContext'; // Ensure the correct 
 
 const AuthScreen = () => {
   const [isLogin, setIsLogin] = useState(true);
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phone, setPhone] = useState('');
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [name, setName] = useState(''); // Renamed fullName to name
   const navigation = useNavigation();
   const { login, register, sendOtp, resetPin } = useAuth();
 
   const handleAuth = async () => {
-    if (!phoneNumber || phoneNumber.length < 10) {
+    if (!phone || phone.length < 10) {
       Alert.alert('Invalid Phone Number', 'Please enter a valid phone number');
       return;
     }
@@ -40,16 +41,22 @@ const AuthScreen = () => {
           return;
         }
 
-        console.log('Attempting login with:', { phoneNumber, pin }); // Debug log
+        console.log('Attempting login with:', { phone, pin }); // Debug log
         // Login with phone and PIN
-        await login(phoneNumber, pin);
+        // navigation.navigate('Home'); // Navigate to Home after login
+        await login(phone, pin);
         // Navigation is handled by the AuthContext
       } else {
         if (!otpSent) {
+          if (!name || name.trim().length < 3) { // Updated validation for name
+            Alert.alert('Invalid Name', 'Please enter your full name');
+            setIsLoading(false);
+            return;
+          }
           // Send OTP for registration
-          await sendOtp(phoneNumber);
+          await sendOtp(phone);
           setOtpSent(true);
-          Alert.alert('OTP Sent', `A verification code has been sent to ${phoneNumber}`);
+          Alert.alert('OTP Sent', `A verification code has been sent to ${phone}`);
         } else {
           if (!otp || otp.length < 4) {
             Alert.alert('Invalid OTP', 'Please enter the verification code');
@@ -67,9 +74,8 @@ const AuthScreen = () => {
             return;
           }
 
-          // Register with phone, OTP, and PIN
-          await register(phoneNumber, otp, pin);
-          // Navigation is handled by the AuthContext
+          // Register with phone, OTP, PIN, and name
+          await register(phone, otp, pin, name); // Pass name instead of fullName
         }
       }
     } catch (error) {
@@ -86,17 +92,18 @@ const AuthScreen = () => {
     setOtp('');
     setPin('');
     setConfirmPin('');
+    setName(''); // Reset name
   };
 
   const handleForgotPin = async () => {
-    if (!phoneNumber || phoneNumber.length < 10) {
+    if (!phone || phone.length < 10) {
       Alert.alert('Invalid Phone Number', 'Please enter your phone number first');
       return;
     }
 
     setIsLoading(true);
     try {
-      await sendOtp(phoneNumber);
+      await sendOtp(phone);
       Alert.alert(
         'Reset PIN',
         'A verification code has been sent to your phone. Please use it to reset your PIN.',
@@ -132,11 +139,24 @@ const AuthScreen = () => {
             style={styles.input}
             placeholder="Phone"
             keyboardType="phone-pad"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
+            value={phone}
+            onChangeText={setPhone}
             editable={!isLoading}
           />
         </View>
+
+        {!isLogin && !otpSent && (
+          <View style={styles.inputContainer}>
+            <Ionicons name="person-outline" size={20} color="#009E60" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Full Name"
+              value={name} // Updated to use name
+              onChangeText={setName} // Updated to use setName
+              editable={!isLoading}
+            />
+          </View>
+        )}
 
         {isLogin && (
           <View style={styles.inputContainer}>

@@ -5,8 +5,8 @@ axios.defaults.baseURL = 'http://127.0.0.1:8000/api/v1'; // Replace with your ac
 
 const api = {
   auth: {
-    register: async (phone, otp, pin) => {
-      const response = await axios.post('/auth/register', { phone, otp, pin });
+    register: async (phone, otp, pin, name) => {
+      const response = await axios.post('/auth/register', { phone, otp, pin, name });
       return response.data;
     },
     login: async (phone, pin) => {
@@ -27,17 +27,27 @@ const api = {
       return response.data;
     },
     sendOtp: async (phone) => {
-      const response = await axios.post('/otp/otp/send', { phone });
+      const response = await axios.post('/otp/send', { phone });
+      return response.data;
+    },
+  },
+  user: {
+    getProfile: async () => {
+      const response = await axios.get('/user/profile'); // Adjust the endpoint as per your backend
+      return response.data;
+    },
+    updateProfile: async (profileData) => {
+      const response = await axios.put('/user/profile', profileData); // Adjust the endpoint as per your backend
       return response.data;
     },
   },
   groups: {
     createGroup: async (groupData) => {
-      const response = await axios.post('/groups/', groupData);
+      const response = await axios.post('/groups', groupData);
       return response.data;
     },
     getUserGroups: async () => {
-      const response = await axios.get('/groups/');
+      const response = await axios.get('/groups');
       return response.data;
     },
     getGroup: async (groupId) => {
@@ -110,10 +120,6 @@ const api = {
     },
   },
   otp: {
-    getOtpRoot: async () => {
-      const response = await axios.get('/otp/');
-      return response.data;
-    },
     verifyOtp: async (otpData) => {
       const response = await axios.post('/otp/otp/verify', otpData);
       return response.data;
