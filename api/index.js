@@ -27,19 +27,29 @@ const api = {
       return response.data;
     },
     sendOtp: async (phone) => {
+      // Backend expects POST /auth/resend-otp with { phone }
       const response = await axios.post('/auth/resend-otp', { phone });
       return response.data;
     },
   },
   user: {
     getProfile: async () => {
-      const response = await axios.get('/user/me'); // Adjust the endpoint as per your backend
+      // Backend: GET /user/me
+      const response = await axios.get('/user/me');
       return response.data;
     },
-    updateProfile: async (profileData) => {
-      const response = await axios.put('/user/balance', profileData); // Adjust the endpoint as per your backend
+    getBalance: async () => {
+      // Backend: GET /user/me/balance
+      const response = await axios.get('/user/me/balance');
       return response.data;
     },
+    getTransactions: async () => {
+      // Backend: GET /user/me/transactions
+      const response = await axios.get('/user/me/transactions');
+      return response.data;
+    },
+    // Remove or fix updateProfile if not supported by backend
+    // updateProfile: async (profileData) => { ... }
   },
   groups: {
     createGroup: async (groupData) => {
@@ -76,12 +86,14 @@ const api = {
     },
   },
   payments: {
-    initiatePayment: async (paymentData) => {
-      const response = await axios.post('/payments/initiate', paymentData);
+    topup: async (paymentData) => {
+      // Backend: POST /payments/topup
+      const response = await axios.post('/payments/topup', paymentData);
       return response.data;
     },
-    confirmPayment: async (paymentData) => {
-      const response = await axios.post('/payments/confirm', paymentData);
+    contribute: async (paymentData) => {
+      // Backend: POST /payments/contribute
+      const response = await axios.post('/payments/contribute', paymentData);
       return response.data;
     },
     getGroupTransactions: async (groupId) => {
@@ -92,10 +104,7 @@ const api = {
       const response = await axios.get('/payments/user');
       return response.data;
     },
-    paymentCallback: async (callbackData) => {
-      const response = await axios.post('/payments/callback', callbackData);
-      return response.data;
-    },
+    // Remove paymentCallback if not supported by backend
   },
   announcements: {
     createAnnouncement: async (announcementData) => {
