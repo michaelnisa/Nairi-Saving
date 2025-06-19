@@ -28,8 +28,8 @@ export const AuthProvider = ({ children }) => {
         if (token) {
           console.log('Token found, setting auth token:', token); // Debug log
           setAuthToken(token); // Ensure token is set for all API requests
-          // Fetch user profile
-          const userData = await api.get('/user/profile'); // Correct endpoint
+          // Fetch user profilese
+          const userData = await api.get('/user/me'); // Correct endpoint / add user/me/remove use/profile
           setUser(userData);
         }
       } catch (error) {

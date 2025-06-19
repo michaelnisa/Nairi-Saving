@@ -23,21 +23,21 @@ const api = {
       return response.data;
     },
     getMe: async () => {
-      const response = await axios.get('/auth/me');
+      const response = await axios.get('/user/me');
       return response.data;
     },
     sendOtp: async (phone) => {
-      const response = await axios.post('/otp/send', { phone });
+      const response = await axios.post('/auth/resend-otp', { phone });
       return response.data;
     },
   },
   user: {
     getProfile: async () => {
-      const response = await axios.get('/user/profile'); // Adjust the endpoint as per your backend
+      const response = await axios.get('/user/me'); // Adjust the endpoint as per your backend
       return response.data;
     },
     updateProfile: async (profileData) => {
-      const response = await axios.put('/user/profile', profileData); // Adjust the endpoint as per your backend
+      const response = await axios.put('/user/balance', profileData); // Adjust the endpoint as per your backend
       return response.data;
     },
   },
@@ -121,11 +121,11 @@ const api = {
   },
   otp: {
     verifyOtp: async (otpData) => {
-      const response = await axios.post('/otp/otp/verify', otpData);
+      const response = await axios.post('/auth/verify', otpData);
       return response.data;
     },
-    sendSms: async (smsData) => {
-      const response = await axios.post('/otp/sms/send', smsData);
+    sendSms: async (phone) => {
+      const response = await axios.post('/sms/send', {phone});
       return response.data;
     },
     incomingMessage: async (messageData) => {
