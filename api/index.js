@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Set the base URL for the API
-axios.defaults.baseURL = 'http://127.0.0.1:8000/api/v1'; // Replace with your actual base URL
+// Set the base URL for the API/
+axios.defaults.baseURL = 'http://192.168.1.105:8000/api/v1';'; // Replace with your computer'
 
 const api = {
   auth: {
@@ -28,7 +28,7 @@ const api = {
     },
     sendOtp: async (phone) => {
       // Backend expects POST /auth/resend-otp with { phone }
-      const response = await axios.post('/auth/resend-otp', { phone });
+      const response = await axios.post('/auth/resend-otp', { phone_number: phone });
       return response.data;
     },
   },

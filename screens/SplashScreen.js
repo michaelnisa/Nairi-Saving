@@ -1,159 +1,136 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Image, Animated, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, Image, Animated, TouchableOpacity, StatusBar, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { height } = Dimensions.get('window');
 
 const SplashScreen = () => {
   const navigation = useNavigation();
   const logoOpacity = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(0.5)).current;
+  const logoScale = useRef(new Animated.Value(0.7)).current;
   const buttonOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Animate logo appearance first
-    Animated.parallel([
-      Animated.timing(logoOpacity, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(logoScale, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      // Then animate buttons after logo animation completes
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(logoOpacity, {
+          toValue: 1,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+        Animated.spring(logoScale, {
+          toValue: 1,
+          friction: 4,
+          useNativeDriver: true,
+        }),
+      ]),
       Animated.timing(buttonOpacity, {
         toValue: 1,
-        duration: 500,
+        duration: 600,
         useNativeDriver: true,
-      }).start();
-    });
+      }),
+    ]).start();
+  }, [logoOpacity, logoScale, buttonOpacity]);
 
-    // Navigate to onboarding after 3 seconds (giving time for button animation)
-    const timer = setTimeout(() => {
-      navigation.replace('Onboarding'); // Use replace instead of navigate
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [logoOpacity, logoScale, buttonOpacity, navigation]);
-
-  const handleSkip = () => {
-    navigation.replace('Onboarding');
-  };
-
-  const handleNext = () => {
+  const handleGetStarted = () => {
     navigation.replace('Onboarding');
   };
 
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={['#009E60', '#00B383', '#00D6A2']}
+      style={styles.gradient}
+    >
       <StatusBar backgroundColor="#009E60" barStyle="light-content" />
-      
-      <Animated.View
-        style={[
-          styles.logoContainer,
-          {
-            opacity: logoOpacity,
-            transform: [{ scale: logoScale }],
-          },
-        ]}
-      >
-        <View style={styles.logoPlaceholder}>
-          {/* Placeholder for logo - replace with your actual logo */}
-          <Text style={styles.logoText}>LOGO</Text>
-        </View>
-        <Text style={styles.tagline}>Empowering Community Savings</Text>
-      </Animated.View>
-      
-      <Animated.View 
-        style={[
-          styles.buttonContainer,
-          { opacity: buttonOpacity }
-        ]}
-      >
-        <TouchableOpacity 
-          style={[styles.button, styles.skipButton]} 
-          onPress={handleSkip}
-          activeOpacity={3.8}
+      <View style={styles.content}>
+        <Animated.View
+          style={[
+            styles.logoContainer,
+            {
+              opacity: logoOpacity,
+              transform: [{ scale: logoScale }],
+            },
+          ]}
         >
-          <Text style={[styles.buttonText, styles.skipButtonText]}>Skip</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.button, styles.nextButton]} 
-          onPress={handleNext}
-          activeOpacity={3.8}
-        >
-          <Text style={[styles.buttonText, styles.nextButtonText]}>Next</Text>
+          {/* Replace with your actual logo image */}
+          <Image
+            // source={require('../assets/logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+          <Text style={styles.appName}>Nairi</Text>
+          <Text style={styles.tagline}>Empowering Community Savings</Text>
+        </Animated.View>
+      </View>
+      <Animated.View style={[styles.buttonWrapper, { opacity: buttonOpacity }]}>
+        <TouchableOpacity style={styles.getStartedButton} onPress={handleGetStarted} activeOpacity={0.85}>
+          <Text style={styles.getStartedText}>Get Started</Text>
         </TouchableOpacity>
       </Animated.View>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  gradient: {
     flex: 1,
-    backgroundColor: '#009E60',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  content: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    width: '100%',
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 50,
+    marginTop: height * 0.15,
   },
-  logoPlaceholder: {
-    width: 150,
-    height: 150,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 75,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
+  logoImage: {
+    width: 120,
+    height: 120,
+    marginBottom: 18,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
-  logoText: {
-    color: 'white',
-    fontSize: 24,
+  appName: {
+    fontSize: 36,
     fontWeight: 'bold',
+    color: 'white',
+    letterSpacing: 2,
+    marginBottom: 8,
   },
   tagline: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '500',
     color: 'white',
     textAlign: 'center',
-    lineHeight: 24,
+    opacity: 0.85,
+    marginTop: 4,
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  buttonWrapper: {
     width: '100%',
-    paddingHorizontal: 20,
-  },
-  button: {
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-    minWidth: 100,
     alignItems: 'center',
+    marginBottom: height * 0.08,
   },
-  skipButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: 'white',
-  },
-  nextButton: {
+  getStartedButton: {
     backgroundColor: 'white',
+    paddingVertical: 16,
+    paddingHorizontal: 60,
+    borderRadius: 30,
+    elevation: 4,
+    shadowColor: '#009E60',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
   },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  skipButtonText: {
-    color: 'white',
-  },
-  nextButtonText: {
+  getStartedText: {
     color: '#009E60',
+    fontSize: 20,
+    fontWeight: 'bold',
+    letterSpacing: 1,
   },
 });
 

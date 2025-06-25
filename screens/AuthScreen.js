@@ -22,7 +22,8 @@ const AuthScreen = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [name, setName] = useState(''); // Renamed fullName to name
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const navigation = useNavigation();
   const { login, register, sendOtp, resetPin } = useAuth();
 
@@ -48,8 +49,13 @@ const AuthScreen = () => {
         // Navigation is handled by the AuthContext
       } else {
         if (!otpSent) {
-          if (!name || name.trim().length < 3) { // Updated validation for name
-            Alert.alert('Invalid Name', 'Please enter your full name');
+          if (!firstName || firstName.trim().length < 2) {
+            Alert.alert('Invalid First Name', 'Please enter your first name');
+            setIsLoading(false);
+            return;
+          }
+          if (!lastName || lastName.trim().length < 2) {
+            Alert.alert('Invalid Last Name', 'Please enter your last name');
             setIsLoading(false);
             return;
           }
@@ -74,8 +80,8 @@ const AuthScreen = () => {
             return;
           }
 
-          // Register with phone, OTP, PIN, and name
-          await register(phone, otp, pin, name); // Pass name instead of fullName
+          // Register with phone, OTP, PIN, firstName, and lastName
+          await register(phone, otp, pin, firstName, lastName);
         }
       }
     } catch (error) {
@@ -92,7 +98,8 @@ const AuthScreen = () => {
     setOtp('');
     setPin('');
     setConfirmPin('');
-    setName(''); // Reset name
+    setFirstName('');
+    setLastName('');
   };
 
   const handleForgotPin = async () => {
@@ -146,16 +153,28 @@ const AuthScreen = () => {
         </View>
 
         {!isLogin && !otpSent && (
-          <View style={styles.inputContainer}>
-            <Ionicons name="person-outline" size={20} color="#009E60" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Full Name"
-              value={name} // Updated to use name
-              onChangeText={setName} // Updated to use setName
-              editable={!isLoading}
-            />
-          </View>
+          <>
+            <View style={styles.inputContainer}>
+              <Ionicons name="person-outline" size={20} color="#009E60" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="First Name"
+                value={firstName}
+                onChangeText={setFirstName}
+                editable={!isLoading}
+              />
+            </View>
+            <View style={styles.inputContainer}>
+              <Ionicons name="person-outline" size={20} color="#009E60" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Last Name"
+                value={lastName}
+                onChangeText={setLastName}
+                editable={!isLoading}
+              />
+            </View>
+          </>
         )}
 
         {isLogin && (
