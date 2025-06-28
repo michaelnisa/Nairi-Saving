@@ -12,145 +12,96 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../screens/context/AuthContext'; // Ensure the correct relative path
+import { useAuth } from '../screens/context/AuthContext';
 
 const AuthScreen = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  // Step: 0 = Phone, 1 = OTP, 2 = Registration
+  const [step, setStep] = useState(0);
   const [phone, setPhone] = useState('');
-  const [pin, setPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const navigation = useNavigation();
-  const { login, register, sendOtp, verifyOtp, resetPin } = useAuth();
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleAuth = async () => {
+  const navigation = useNavigation();
+  const { sendOtp, verifyOtp, register } = useAuth();
+
+  // Step 1: Send OTP
+  const handleSendOtp = async () => {
     if (!phone || phone.length < 10) {
       Alert.alert('Invalid Phone Number', 'Please enter a valid phone number');
       return;
     }
-
-    setIsLoading(true);
-    try {
-      if (isLogin) {
-        if (!pin || pin.length < 4) {
-          Alert.alert('Invalid PIN', 'Please enter a valid PIN');
-          setIsLoading(false);
-          return;
-        }
-
-        console.log('Attempting login with:', { phone, pin }); // Debug log
-        // Login with phone and PIN
-        // navigation.navigate('Home'); // Navigate to Home after login
-        await login(phone, pin);
-        // Navigation is handled by the AuthContext
-      } else {
-        if (!otpSent) {
-          if (!firstName || firstName.trim().length < 2) {
-            Alert.alert('Invalid First Name', 'Please enter your first name');
-            setIsLoading(false);
-            return;
-          }
-          if (!lastName || lastName.trim().length < 2) {
-            Alert.alert('Invalid Last Name', 'Please enter your last name');
-            setIsLoading(false);
-            return;
-          }
-          // Send OTP for registration
-          await sendOtp(phone);
-          setOtpSent(true);
-          Alert.alert('OTP Sent', `A verification code has been sent to ${phone}`);
-        } else {
-          if (!otp || otp.length < 4) {
-            Alert.alert('Invalid OTP', 'Please enter the verification code');
-            setIsLoading(false);
-            return;
-          }
-          if (!pin || pin.length < 4) {
-            Alert.alert('Invalid PIN', 'Please create a PIN with at least 4 digits');
-            setIsLoading(false);
-            return;
-          }
-          if (pin !== confirmPin) {
-            Alert.alert('PINs do not match', 'Please make sure your PINs match');
-            setIsLoading(false);
-            return;
-          }
-
-          // Register with phone, OTP, PIN, firstName, and lastName
-          await register(phone, otp, pin, firstName, lastName);
-
-          // Now verify OTP before allowing login
-          try {
-            await verifyOtp(phone, otp);
-            setIsLogin(true);
-            setOtpSent(false);
-            setOtp('');
-            setPin('');
-            setConfirmPin('');
-            setFirstName('');
-            setLastName('');
-            Alert.alert(
-              'Registration Successful',
-              'Your account has been verified. Please log in with your phone and PIN.'
-            );
-            return;
-          } catch (verifyError) {
-            Alert.alert('Verification Failed', verifyError.message || 'OTP verification failed');
-            setIsLoading(false);
-            return;
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Auth error:', error);
-      Alert.alert('Authentication Error', error.message || 'Something went wrong');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const toggleAuthMode = () => {
-    setIsLogin(!isLogin);
-    setOtpSent(false);
-    setOtp('');
-    setPin('');
-    setConfirmPin('');
-    setFirstName('');
-    setLastName('');
-  };
-
-  const handleForgotPin = async () => {
-    if (!phone || phone.length < 10) {
-      Alert.alert('Invalid Phone Number', 'Please enter your phone number first');
-      return;
-    }
-
     setIsLoading(true);
     try {
       await sendOtp(phone);
-      Alert.alert(
-        'Reset PIN',
-        'A verification code has been sent to your phone. Please use it to reset your PIN.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setIsLogin(false);
-              setOtpSent(true);
-            },
-          },
-        ]
-      );
+      Alert.alert('OTP Sent', `A verification code has been sent to ${phone}`);
+      setStep(1);
     } catch (error) {
-      console.error('Failed to send OTP:', error);
-      Alert.alert('Error', error.message || 'Failed to send verification code');
+      Alert.alert('Error', error.message || 'Failed to send OTP');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Step 2: Verify OTP
+  const handleVerifyOtp = async () => {
+    if (!otp || otp.length < 4) {
+      Alert.alert('Invalid OTP', 'Please enter the verification code');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await verifyOtp(phone, otp);
+      setStep(2);
+    } catch (error) {
+      Alert.alert('Verification Failed', error.message || 'OTP verification failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Step 3: Register
+  const handleRegister = async () => {
+    if (!firstName || firstName.trim().length < 2) {
+      Alert.alert('Invalid First Name', 'Please enter your first name');
+      return;
+    }
+    if (!lastName || lastName.trim().length < 2) {
+      Alert.alert('Invalid Last Name', 'Please enter your last name');
+      return;
+    }
+    if (!pin || pin.length < 4) {
+      Alert.alert('Invalid PIN', 'Please create a PIN with at least 4 digits');
+      return;
+    }
+    if (pin !== confirmPin) {
+      Alert.alert('PINs do not match', 'Please make sure your PINs match');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await register(phone, otp, pin, firstName, lastName);
+      // Optionally, auto-login after registration
+      // await login(phone, pin);
+      navigation.navigate('Home');
+    } catch (error) {
+      Alert.alert('Registration Error', error.message || 'Registration failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Reset all fields and go back to step 0
+  const handleBackToPhone = () => {
+    setStep(0);
+    setOtp('');
+    setFirstName('');
+    setLastName('');
+    setPin('');
+    setConfirmPin('');
   };
 
   return (
@@ -159,21 +110,80 @@ const AuthScreen = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.formContainer}>
-        <Text style={styles.title}>{isLogin ? 'Welcome Back' : 'Create Account'}</Text>
+        <Text style={styles.title}>Sign Up</Text>
 
-        <View style={styles.inputContainer}>
-          <Ionicons name="call-outline" size={20} color="#009E60" style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Phone"
-            keyboardType="phone-pad"
-            value={phone}
-            onChangeText={setPhone}
-            editable={!isLoading}
-          />
-        </View>
+        {step === 0 && (
+          <>
+            <View style={styles.inputContainer}>
+              <Ionicons name="call-outline" size={20} color="#009E60" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Phone"
+                keyboardType="phone-pad"
+                value={phone}
+                onChangeText={setPhone}
+                editable={!isLoading}
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.button, isLoading && styles.disabledButton]}
+              onPress={handleSendOtp}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <Text style={styles.buttonText}>Send Verification Code</Text>
+              )}
+            </TouchableOpacity>
+          </>
+        )}
+        {step === 0 && (
+          <TouchableOpacity
+            style={styles.toggleAuth}
+            onPress={() => navigation.navigate('Login')}
+            disabled={isLoading}
+          >
+            <Text style={styles.toggleAuthText}>Already have an account? Login</Text>
+          </TouchableOpacity>
+        )}
 
-        {!isLogin && !otpSent && (
+        {step === 1 && (
+          <>
+            <View style={styles.inputContainer}>
+              <Ionicons name="key-outline" size={20} color="#009E60" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Verification Code"
+                keyboardType="number-pad"
+                value={otp}
+                onChangeText={setOtp}
+                maxLength={6}
+                editable={!isLoading}
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.button, isLoading && styles.disabledButton]}
+              onPress={handleVerifyOtp}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <Text style={styles.buttonText}>Verify</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.toggleAuth}
+              onPress={handleBackToPhone}
+              disabled={isLoading}
+            >
+              <Text style={styles.toggleAuthText}>Back</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {step === 2 && (
           <>
             <View style={styles.inputContainer}>
               <Ionicons name="person-outline" size={20} color="#009E60" style={styles.inputIcon} />
@@ -195,40 +205,6 @@ const AuthScreen = () => {
                 editable={!isLoading}
               />
             </View>
-          </>
-        )}
-
-        {isLogin && (
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#009E60" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="PIN"
-              keyboardType="number-pad"
-              secureTextEntry
-              value={pin}
-              onChangeText={setPin}
-              maxLength={6}
-              editable={!isLoading}
-            />
-          </View>
-        )}
-
-        {!isLogin && otpSent && (
-          <>
-            <View style={styles.inputContainer}>
-              <Ionicons name="key-outline" size={20} color="#009E60" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Verification Code"
-                keyboardType="number-pad"
-                value={otp}
-                onChangeText={setOtp}
-                maxLength={6}
-                editable={!isLoading}
-              />
-            </View>
-
             <View style={styles.inputContainer}>
               <Ionicons name="lock-closed-outline" size={20} color="#009E60" style={styles.inputIcon} />
               <TextInput
@@ -242,7 +218,6 @@ const AuthScreen = () => {
                 editable={!isLoading}
               />
             </View>
-
             <View style={styles.inputContainer}>
               <Ionicons name="lock-closed-outline" size={20} color="#009E60" style={styles.inputIcon} />
               <TextInput
@@ -256,46 +231,26 @@ const AuthScreen = () => {
                 editable={!isLoading}
               />
             </View>
+            <TouchableOpacity
+              style={[styles.button, isLoading && styles.disabledButton]}
+              onPress={handleRegister}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <Text style={styles.buttonText}>Register</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.toggleAuth}
+              onPress={handleBackToPhone}
+              disabled={isLoading}
+            >
+              <Text style={styles.toggleAuthText}>Back</Text>
+            </TouchableOpacity>
           </>
         )}
-
-        {isLogin && (
-          <TouchableOpacity
-            style={styles.forgotPin}
-            onPress={handleForgotPin}
-            disabled={isLoading}
-          >
-            <Text style={styles.forgotPinText}>Forgot PIN?</Text>
-          </TouchableOpacity>
-        )}
-
-        <TouchableOpacity
-          style={[styles.button, isLoading && styles.disabledButton]}
-          onPress={handleAuth}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="white" size="small" />
-          ) : (
-            <Text style={styles.buttonText}>
-              {isLogin
-                ? 'Login'
-                : otpSent
-                  ? 'Create Account'
-                  : 'Send Verification Code'}
-            </Text>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.toggleAuth}
-          onPress={toggleAuthMode}
-          disabled={isLoading}
-        >
-          <Text style={styles.toggleAuthText}>
-            {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Login'}
-          </Text>
-        </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
@@ -375,16 +330,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
   },
-  forgotPin: {
-    alignSelf: 'flex-end',
-    marginBottom: 20,
-    padding: 5,
-  },
-  forgotPinText: {
-    color: '#009E60',
-    fontSize: 14,
-    fontWeight: '500',
-  }
-})
+});
 
 export default AuthScreen;

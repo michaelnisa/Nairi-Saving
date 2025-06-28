@@ -12,6 +12,7 @@ import { StatusBar } from "expo-status-bar";
 import SplashScreen from "./screens/SplashScreen";
 import OnboardingScreen from "./screens/OnboardingScreen";
 import AuthScreen from "./screens/AuthScreen";
+import LoginScreen from "./screens/LoginScreen";
 import HomeScreen from "./screens/HomeScreen";
 import GroupOverviewScreen from "./screens/GroupOverviewScreen";
 import CreateGroupScreen from "./screens/CreateGroupScreen";
@@ -52,6 +53,7 @@ function RootNavigator() {
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Auth" component={AuthScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="GroupOverview" component={GroupOverviewScreen} />
       <Stack.Screen name="CreateGroup" component={CreateGroupScreen} />
