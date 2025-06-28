@@ -25,7 +25,7 @@ const AuthScreen = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const navigation = useNavigation();
-  const { login, register, sendOtp, resetPin } = useAuth();
+  const { login, register, sendOtp, verifyOtp, resetPin } = useAuth();
 
   const handleAuth = async () => {
     if (!phone || phone.length < 10) {
@@ -82,6 +82,27 @@ const AuthScreen = () => {
 
           // Register with phone, OTP, PIN, firstName, and lastName
           await register(phone, otp, pin, firstName, lastName);
+
+          // Now verify OTP before allowing login
+          try {
+            await verifyOtp(phone, otp);
+            setIsLogin(true);
+            setOtpSent(false);
+            setOtp('');
+            setPin('');
+            setConfirmPin('');
+            setFirstName('');
+            setLastName('');
+            Alert.alert(
+              'Registration Successful',
+              'Your account has been verified. Please log in with your phone and PIN.'
+            );
+            return;
+          } catch (verifyError) {
+            Alert.alert('Verification Failed', verifyError.message || 'OTP verification failed');
+            setIsLoading(false);
+            return;
+          }
         }
       }
     } catch (error) {

@@ -6,12 +6,12 @@ axios.defaults.baseURL = 'http://192.168.1.105:8000/api/v1';'; // Replace with y
 const api = {
   auth: {
     register: async (phone, otp, pin, name) => {
-      const response = await axios.post('/auth/register', { phone, otp, pin, name });
+      const response = await axios.post('/auth/register', { phone_number: phone, otp, pin, name });
       return response.data;
     },
     login: async (phone, pin) => {
       try {
-        const response = await axios.post('/auth/login', { phone, pin });
+        const response = await axios.post('/auth/login', { phone_number: phone, pin });
         return response.data;
       } catch (error) {
         console.error('Login API error:', error.response?.data || error.message);
@@ -134,7 +134,7 @@ const api = {
       return response.data;
     },
     sendSms: async (phone) => {
-      const response = await axios.post('/sms/send', {phone});
+      const response = await axios.post('/sms/send', {phone_number:phone});
       return response.data;
     },
     incomingMessage: async (messageData) => {
