@@ -15,8 +15,8 @@ import { api } from '../screens/services/api';
 import { useAuth } from '../screens/context/AuthContext';
 
 const ProfileScreen = () => {
-  const navigation = useNavigation();
   const { user, logout } = useAuth();
+  const navigation = useNavigation();
   const [userData, setUserData] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [walletBalance, setWalletBalance] = useState(0);
@@ -98,7 +98,10 @@ const ProfileScreen = () => {
           onPress: async () => {
             try {
               await logout();
-              // Navigation is handled by the AuthContext
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
             } catch (error) {
               console.error('Logout failed:', error);
               Alert.alert('Error', 'Failed to logout. Please try again.');
@@ -132,7 +135,7 @@ const ProfileScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 100 }}>
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
             <Text style={styles.avatarText}>
@@ -220,76 +223,17 @@ const ProfileScreen = () => {
             <Text style={styles.emptyText}>No recent transactions</Text>
           )}
         </View>
-
-        <View style={styles.settingsSection}>
-          <Text style={styles.sectionTitle}>Settings</Text>
-          
-          <View style={styles.settingItem}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="notifications-outline" size={20} color="#333" />
-              <Text style={styles.settingLabel}>Notifications</Text>
-            </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
-              trackColor={{ false: '#ccc', true: '#009E60' }}
-              thumbColor="white"
-            />
-          </View>
-          
-          <View style={styles.settingItem}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="finger-print-outline" size={20} color="#333" />
-              <Text style={styles.settingLabel}>Biometric Login</Text>
-            </View>
-            <Switch
-              value={biometricEnabled}
-              onValueChange={setBiometricEnabled}
-              trackColor={{ false: '#ccc', true: '#009E60' }}
-              thumbColor="white"
-            />
-          </View>
-          
-          <View style={styles.settingItem}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="moon-outline" size={20} color="#333" />
-              <Text style={styles.settingLabel}>Dark Mode</Text>
-            </View>
-            <Switch
-              value={darkModeEnabled}
-              onValueChange={setDarkModeEnabled}
-              trackColor={{ false: '#ccc', true: '#009E60' }}
-              thumbColor="white"
-            />
-          </View>
-          
-          <TouchableOpacity style={styles.settingButton}>
-            <Ionicons name="language-outline" size={20} color="#333" />
-            <Text style={styles.settingButtonText}>Language</Text>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.settingButton}>
-            <Ionicons name="shield-checkmark-outline" size={20} color="#333" />
-            <Text style={styles.settingButtonText}>Privacy & Security</Text>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.settingButton}>
-            <Ionicons name="help-circle-outline" size={20} color="#333" />
-            <Text style={styles.settingButtonText}>Help & Support</Text>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.settingButton, styles.logoutButton]}
-            onPress={handleLogout}
-          >
-            <Ionicons name="log-out-outline" size={20} color="#FF6B6B" />
-            <Text style={[styles.settingButtonText, styles.logoutText]}>Logout</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
+
+      <View style={styles.logoutFooter}>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+        >
+          <Ionicons name="log-out-outline" size={22} color="#fff" style={{ marginRight: 8 }} />
+          <Text style={styles.logoutButtonText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -467,52 +411,42 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
-  settingsSection: {
+  logoutFooter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 30,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  settingItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  settingInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  settingLabel: {
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 15,
-  },
-  settingButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  settingButtonText: {
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 15,
-    flex: 1,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
   },
   logoutButton: {
-    borderBottomWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF6B6B',
+    borderRadius: 30,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    elevation: 2,
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
   },
-  logoutText: {
-    color: '#FF6B6B',
+  logoutButtonText: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
 });
 

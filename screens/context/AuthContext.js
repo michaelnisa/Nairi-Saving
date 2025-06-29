@@ -1,4 +1,4 @@
-import { Animated } from 'react-native';
+import { Animated, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useState, useContext, useEffect } from 'react';
@@ -29,11 +29,18 @@ export const AuthProvider = ({ children }) => {
         if (token) {
           console.log('Token found, setting auth token:', token);
           setAuthToken(token);
-          const userData = await api.get('/user/me');
+          console.log('Restored headers:', axios.defaults.headers.common);
+          // Use the correct API call to get user profile
+          const userData = await api.user.getProfile();
           setUser(userData);
+        } else {
+          // Explicitly clear auth header if no token found
+          setAuthToken(null);
+          console.log('No token found, Authorization header cleared.');
         }
       } catch (error) {
         console.error('Failed to load auth token:', error);
+        setAuthToken(null);
       } finally {
         setIsLoading(false);
       }
@@ -49,16 +56,27 @@ export const AuthProvider = ({ children }) => {
       console.log('Calling API login with:', { phone: phone_number, pin });
       const response = await api.auth.login(phone_number, pin);
       console.log('Login response:', response);
-      const token = response.access_token;
-      if (token) {
-        await AsyncStorage.setItem('authToken', token);
-        setAuthToken(token);
-        setUser(response.user);
-        navigation.navigate("Home");
-      } else {
-        console.error('Login failed: No access token received');
+
+      // Support token at response.data.token.access_token, response.data.access_token, or response.access_token
+      let token =
+        response?.data?.token?.access_token ||
+        response?.data?.access_token ||
+        response?.access_token;
+
+      if (!token) {
+        Alert.alert('Login Error', 'No access token received from server.');
         throw new Error('No access token received');
       }
+
+      await AsyncStorage.setItem('authToken', token);
+      setAuthToken(token);
+      console.log('Current authToken:', token);
+      console.log('Generated headers:', axios.defaults.headers.common);
+
+      // Set user from response (handle both response.data.user and response.user)
+      setUser(response?.data?.user || response.user);
+
+      navigation.navigate("Home");
     } catch (error) {
       const message = error?.response?.data?.message || error.message || 'Login failed';
       console.error('Login failed:', error);
@@ -129,7 +147,14 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     setIsLoading(true);
     try {
-      await api.auth.logout();
+      // Remove token from axios headers before calling logout API
+      setAuthToken(null);
+      try {
+        await api.auth.logout();
+      } catch (logoutError) {
+        // Log but ignore logout API errors since token is already removed
+        console.error('Logout API error (ignored):', logoutError);
+      }
       await AsyncStorage.removeItem('authToken');
       setUser(null);
     } catch (error) {

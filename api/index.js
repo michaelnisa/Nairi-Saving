@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Set the base URL for the API/
-axios.defaults.baseURL = 'http://192.168.1.105:8000/api/v1';'; // Replace with your computer'
+// Set the base URL for the API
+axios.defaults.baseURL = 'http://192.168.1.105:8000/api/v1'; // Replace with your computer
 
 const api = {
   auth: {
@@ -152,8 +152,10 @@ const api = {
 export const setAuthToken = (token) => {
   if (token) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    console.log('setAuthToken: Set Authorization header:', axios.defaults.headers.common['Authorization']);
   } else {
     delete axios.defaults.headers.common['Authorization'];
+    console.log('setAuthToken: Removed Authorization header');
   }
 };
 
